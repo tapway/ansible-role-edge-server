@@ -1,0 +1,172 @@
+- name: Get Edge Server host name
+  tags:
+    - always
+  changed_when: false
+  failed_when: hostname_cmd.rc != 0
+  register: hostname_cmd
+  ansible.builtin.shell: |
+    hostname
+
+- name: Get Nvidia distribution name
+  tags:
+    - always
+  changed_when: false
+  failed_when: os_release_cmd.rc != 0
+  register: os_release_cmd
+  ansible.builtin.shell: |
+    . /etc/os-release;echo $ID$VERSION_ID
+
+- name: Get CPU architecture
+  changed_when: false
+  failed_when: cpu_arch.rc != 0
+  register: cpu_arch
+  ansible.builtin.command: arch
+
+- name: Set ARCH environment variable
+  become: true
+  notify:
+    - Reload /etc/environment
+  ansible.builtin.lineinfile:
+    dest: "/etc/environment"
+    state: present
+    regexp: "^ARCH="
+    line: "ARCH={{ cpu_arch.stdout }}"
+
+- name: Set TAPWAY_ARCH environment variable
+  become: true
+  notify:
+    - Reload /etc/environment
+  ansible.builtin.lineinfile:
+    dest: "/etc/environment"
+    state: present
+    regexp: "^TAPWAY_ARCH="
+    line: "TAPWAY_ARCH={{ deb_architecture[ansible_architecture] }}"
+
+- name: Get display info
+  become: true
+  changed_when: false
+  failed_when: display_info.rc != 0
+  register: display_info
+  ansible.builtin.shell:
+    cmd: |
+      lshw -C display
+  args:
+    executable: /bin/bash
+
+- name: Get L4T version
+  changed_when: false
+  failed_when: false
+  register: nvidia_l4t_cmd
+  ansible.builtin.shell: dpkg-query --showformat='${Version}' --show nvidia-l4t-core 2>&1
+
+# EC2 example
+#  *-display:1 UNCLAIMED
+#       description: 3D controller
+#       product: TU104GL [Tesla T4]
+#       vendor: NVIDIA Corporation
+#       physical id: 1e
+#       bus info: pci@0000:00:1e.0
+#       version: a1
+#       width: 64 bits
+#       clock: 33MHz
+#       capabilities: pm pciexpress msix cap_list
+#       configuration: latency=0
+#       resources: iomemory:40-3f iomemory:40-3f memory:fd000000-fdffffff memory:440000000-44fffffff memory:450000000-451ffffff
+
+- name: Get GPU architecture
+  changed_when: false
+  failed_when: tapway_gpu_arch.rc != 0
+  register: tapway_gpu_arch
+  ansible.builtin.shell:
+    cmd: |
+      def get_jetpack_arch() -> str:
+          version = l4t_version.split("-")[0]
+          release, major, minor = version.split(".")
+          if release == "32":
+              if major == "5" and int(minor) > 0:
+                  arch = "jetpack4.5"
+              elif major in ["6", "7"] and int(minor) > 0:
+                  arch = "jetpack4.6.1"
+              else:
+                 raise ValueError(version)
+          elif release == "34":
+              if major == "1" and minor == "0":
+                  arch = "jetpack5.0.0"
+              elif major == "1" and minor == "1":
+                  arch = "jetpack5.0.1"
+              else:
+                 raise ValueError(version)
+          elif release == "35":
+              if major == "1" and minor == "0":
+                  arch = "jetpack5.0.2"
+              elif major in ["2", "3"] and minor == "1":
+                  arch = "jetpack5.1"
+              else:
+                 raise ValueError(version)
+          else:
+             raise ValueError(version)
+          return arch
+
+      display_info = """{{ display_info.stdout }}"""
+      l4t_version = """{{ nvidia_l4t_cmd.stdout }}"""
+      if "no packages found matching nvidia-l4t-core" in l4t_version:
+          if "vendor: NVIDIA Corporation" in display_info:
+              arch = "gpu"
+          else:
+              arch = "cpu"
+      else:
+          arch = get_jetpack_arch()
+      print(arch)
+  args:
+    executable: /usr/bin/python3
+
+- name: Set TAPWAY_GPU_ARCH environment variable
+  become: true
+  notify:
+    - Reload /etc/environment
+  ansible.builtin.lineinfile:
+    dest: "/etc/environment"
+    state: present
+    regexp: "^TAPWAY_GPU_ARCH="
+    line: "TAPWAY_GPU_ARCH={{ tapway_gpu_arch.stdout }}"
+
+- name: Check nvidia-smi existence
+  changed_when: false
+  failed_when: false
+  register: nvidia_smi_cmd
+  ansible.builtin.command: nvidia-smi
+
+- name: Set nvidia-smi fact
+  changed_when: false
+  failed_when: nvidia_smi_fact.rc != 0
+  register: nvidia_smi_fact
+  ansible.builtin.shell:
+    cmd: |
+      fact = "no" if {{ nvidia_smi_cmd.rc }} != 0 else "yes"
+      print(fact)
+  args:
+    executable: /usr/bin/python3
+
+- name: Set facts
+  ansible.builtin.set_fact:
+    deb_arch: "{{ deb_architecture[ansible_architecture] }}"
+    gg_arch: "{{ gg_architecture[ansible_architecture] }}"
+    host_name: "{{ hostname_cmd.stdout }}"
+    nvidia_distribution_name: "{{ os_release_cmd.stdout }}"
+    nvidia_driver: "{{ nvidia_smi_fact.stdout }}"
+    tapway_gpu_var: "{{ tapway_gpu_arch.stdout }}"
+
+- name: Print Edge Server facts
+  tags:
+    - always
+  ansible.builtin.debug:
+    msg:
+      - "Deb package architecture `{{ deb_arch }}`"
+      - "Greengrass package architecture `{{ deb_arch }}`"
+      - "OS `{{ ansible_distribution }} {{ ansible_distribution_version }}` `{{ ansible_distribution_release }}`"
+      - "Nvidia distribution name `{{ nvidia_distribution_name }}`"
+      - "Edge Server host name `{{ host_name }}`"
+      - "ARCH={{ cpu_arch.stdout }}"
+      - "TAPWAY_ARCH={{ deb_arch }}"
+      - "TAPWAY_GPU_ARCH={{ tapway_gpu_var }}"
+      - "Nvidia driver installed: {{ nvidia_driver }}"

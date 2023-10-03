@@ -1,0 +1,8 @@
+warn_list:
+  - role-name[path]
+  - risky-file-permissions
+  - risky-shell-pipe
+  - no-changed-when
+  - yaml[line-length]
+exclude_paths:
+  - .github/

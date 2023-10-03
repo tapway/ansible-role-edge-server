@@ -1,0 +1,111 @@
+- name: Set globally available environment variables and ansible facts
+  tags:
+    - always
+  ansible.builtin.include_tasks:
+    file: facts.yml
+    apply:
+      tags:
+        - always
+
+- name: Create ~/opt directory if it does not exist
+  tags:
+    - always
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/opt/"
+    state: directory
+    mode: '0755'
+
+- name: Update installed apt packages
+  when: deb_arch == "amd64"  # FIXME Jetson can't `apt upgrade` (break Docker filesystem as result)
+  tags:
+    - apt
+  ansible.builtin.include_tasks:
+    file: apt-upgrade.yml
+    apply:
+      tags:
+        - apt
+
+- name: Install apt packages
+  when: deb_arch == "amd64"
+  tags:
+    - apt
+  ansible.builtin.include_tasks:
+    file: apt.yml
+    apply:
+      tags:
+        - apt
+
+- name: Install and configure shell history search
+  when: deb_arch == "amd64"
+  tags:
+    - dev
+  ansible.builtin.include_tasks:
+    file: hstr.yml
+    apply:
+      tags:
+        - dev
+
+- name: Customize bash configuration
+  tags:
+    - dev
+  ansible.builtin.include_tasks:
+    file: bashrc.yml
+    apply:
+      tags:
+        - dev
+
+- name: Setup Docker
+  tags:
+    - docker
+  ansible.builtin.include_tasks:
+    file: docker.yml
+    apply:
+      tags:
+        - docker
+
+- name: Setup AWS Greengrass
+  tags:
+    - gg
+  ansible.builtin.include_tasks:
+    file: gg.yml
+    apply:
+      tags:
+        - gg
+
+- name: Install Haikang camera MVS
+  tags:
+    - mvs
+  ansible.builtin.include_tasks:
+    file: mvs.yml
+    apply:
+      tags:
+        - mvs
+
+- name: Install Nvidia GPU drivers and tools
+  tags:
+    - gpu
+  when: tapway_gpu_var == "gpu"
+  ansible.builtin.include_tasks:
+    file: nvidia.yml
+    apply:
+      tags:
+        - gpu
+
+- name: Install Manager service compose stack
+  tags:
+    - manager
+  ansible.builtin.include_tasks:
+    file: manager.yml
+    apply:
+      tags:
+        - manager
+
+- name: Setup Portainer
+  tags:
+    - portainer
+    - dev
+  ansible.builtin.include_tasks:
+    file: portainer.yml
+    apply:
+      tags:
+        - portainer

@@ -1,0 +1,23 @@
+- name: Update apt cache
+  become: true
+  ansible.builtin.apt:
+    cache_valid_time: "{{ cache_valid_time }}"
+    update_cache: true
+
+- name: Upgrade all packages
+  become: true
+  ansible.builtin.apt:
+    upgrade: dist
+    autoclean: true
+    autoremove: true
+
+- name: Check if reboot is required
+  changed_when: reboot_required.stat.exists
+  notify: Reboot
+  register: reboot_required
+  ansible.builtin.stat:
+    get_checksum: false
+    path: /var/run/reboot-required
+
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers

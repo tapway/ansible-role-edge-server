@@ -1,0 +1,27 @@
+galaxy_info:
+  role_name: edge_server
+  namespace: tapway
+  author: Tapway
+  description: This role is designed to bootstrap an edge server for Tapway https://gotapway.com/solutions VisionTrack/VehicleTrack applications.
+  company: Tapway
+
+  license: MIT
+
+  min_ansible_version: "2.10"
+
+  # If this a Container Enabled role, provide the minimum Ansible Container version.
+  # min_ansible_container_version:
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - bionic
+        - focal
+#        - jammy
+  galaxy_tags:
+    - ubuntu
+    - application
+
+dependencies: []
+  # List your role dependencies here, one per line. Be sure to remove the '[]' above,
+# if you add dependencies to this list.

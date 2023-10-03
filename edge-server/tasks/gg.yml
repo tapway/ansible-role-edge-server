@@ -1,0 +1,118 @@
+- name: Create service directory
+  become: true
+  ansible.builtin.file:
+    path: /greengrass
+    state: directory
+
+- name: Create public directories if it does not exist
+  become: true
+  with_items:
+    - /config
+    - /video
+    - /models
+    - /images
+    - /logs
+    - /ftp-data
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0777'
+
+- name: Create greengrass group
+  become: true
+  ansible.builtin.group:
+    name: "{{ greengrass_group }}"
+    state: present
+
+- name: Create greengrass user
+  become: true
+  ansible.builtin.user:
+    groups:
+      - "{{ greengrass_group }}"
+      - docker
+    name: "{{ greengrass_user }}"
+
+# FIXME gg_lambda docker socket permission denied and remove sudo ability
+- name: Add greengrass user to the docker group
+  become: true
+  ansible.builtin.user:
+    append: true
+    groups: docker
+    name: "{{ ansible_user_id }}"
+
+- name: Add greengrass user to sudoers
+  become: true
+  ansible.builtin.lineinfile:
+    path: "/etc/sudoers.d/{{ greengrass_user }}"
+    line: "{{ greengrass_user }} ALL=(ALL) NOPASSWD: ALL"
+    state: present
+    mode: "0440"
+    create: true
+    validate: 'visudo -cf %s'
+
+- name: Set includedir in sudoers
+  become: true
+  ansible.builtin.lineinfile:
+    dest: /etc/sudoers
+    line: "#includedir /etc/sudoers.d"
+    state: present
+    validate: "/usr/sbin/visudo -cf %s"
+
+- name: Add Python repository to the apt sources
+  become: true
+  ansible.builtin.apt_repository:
+    repo: "ppa:deadsnakes/ppa"
+    state: present
+
+- name: Add Greengrass runtime
+  become: true
+  with_items:
+    - python3.7
+    - python3.7-distutils
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    cache_valid_time: "{{ cache_valid_time }}"
+
+- name: Add Greengrass runtime dependencies
+  become: true
+  changed_when: '"Installing collected packages" in is_gg_runtime_dep_installed.stdout'
+  register: is_gg_runtime_dep_installed
+  with_items:
+    - awscli
+    - greengrasssdk
+    - attrs==23.1.0
+    - python-dotenv
+    - requests
+    - retry
+  ansible.builtin.command: "python3.7 -m pip install {{ item }}"
+
+- name: Download greengrass-core
+  ansible.builtin.get_url:
+    url: "https://d1onfpft10uf5o.cloudfront.net/greengrass-core/downloads/{{ greengrass_version }}/greengrass-linux-{{ gg_arch }}-{{ greengrass_version }}.tar.gz"
+    dest: "{{ ansible_env.HOME }}/opt/greengrass-linux-{{ gg_arch }}-{{ greengrass_version }}.tar.gz"
+
+- name: Unpack greengrass-core
+  become: true
+  ansible.builtin.unarchive:
+    src: "{{ ansible_env.HOME }}/opt/greengrass-linux-{{ gg_arch }}-{{ greengrass_version }}.tar.gz"
+    dest: /greengrass
+    remote_src: true
+    extra_opts:
+      - --strip-components=1
+
+- name: Download greengrass certs
+  become: true
+  ansible.builtin.get_url:
+    url: https://www.amazontrust.com/repository/AmazonRootCA1.pem
+    dest: /greengrass/certs/root.ca.pem
+
+- name: Copy greengrass.service to the /etc/systemd/system/
+  become: true
+  notify:
+    - Enable greengrass.service
+  ansible.builtin.copy:
+    src: files/etc/systemd/system/greengrass.service
+    dest: /etc/systemd/system/greengrass.service
+
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers

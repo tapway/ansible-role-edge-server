@@ -1,0 +1,20 @@
+---
+cpu:
+  hosts:
+    vm-focal64:
+      ansible_host: 127.0.0.1
+      ansible_user: vagrant
+      ansible_ssh_port: 2222
+      ansible_ssh_private_key_file: ./.vagrant/machines/focal64/virtualbox/private_key
+
+gpu:
+  hosts:
+    ec2-focal64:
+      ansible_host: 13.213.33.183
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: ~/.ssh/tapway-visiontrack-cf.pem
+
+all:
+  children:
+    cpu:
+    gpu:

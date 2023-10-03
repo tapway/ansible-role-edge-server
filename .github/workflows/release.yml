@@ -1,0 +1,9 @@
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  pre-commit:
+    name: Create globally available pre-commit cache
+    uses: cachuperia/github-reusable-workflows/.github/workflows/pre-commit.yml@v1.1.0

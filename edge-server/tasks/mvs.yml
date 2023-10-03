@@ -1,0 +1,4 @@
+- name: Install package
+  become: true
+  ansible.builtin.apt:
+    deb: "https://plus-edge-server-libs.s3.ap-southeast-1.amazonaws.com/MVS/MVS_STD_GML_V2.1.2_221208/MVS-2.1.2_{{ ansible_architecture }}_20221208.deb"

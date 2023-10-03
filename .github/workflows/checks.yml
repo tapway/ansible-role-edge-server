@@ -1,0 +1,14 @@
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+jobs:
+  pre-commit:
+    uses: cachuperia/github-reusable-workflows/.github/workflows/pre-commit.yml@v1.1.0
+
+  commitlint:
+    uses: cachuperia/github-reusable-workflows/.github/workflows/commitlint.yml@v1.1.0
