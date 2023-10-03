@@ -1,0 +1,29 @@
+- name: Add hstr repository to the apt sources
+  become: true
+  ansible.builtin.apt_repository:
+    repo: "ppa:ultradvorka/ppa"
+    state: present
+
+- name: Install hstr
+  become: true
+  ansible.builtin.apt:
+    name: hstr
+    cache_valid_time: "{{ cache_valid_time }}"
+
+- name: Add hstr config to the .bashrc
+  ansible.builtin.blockinfile:
+    block: |
+      alias hh=hstr                    # hh to be alias for hstr
+      export HSTR_CONFIG=hicolor       # get more colors
+      shopt -s histappend              # append new history items to .bash_history
+      export HISTCONTROL=ignoreboth:erasedups  # https://unix.stackexchange.com/a/265649/204020
+      export HISTFILESIZE=10000        # increase history file size (default is 500)
+      export HISTSIZE=${HISTFILESIZE}  # increase history size (default is 500)
+      # ensure synchronization between bash memory and history file
+      export PROMPT_COMMAND="history -a; history -n; ${PROMPT_COMMAND}"
+      if [[ $- =~ .*i.* ]]; then bind '"\C-r": "\C-a hstr -- \C-j"'; fi
+      # if this is interactive shell, then bind 'kill last command' to Ctrl-x k
+      if [[ $- =~ .*i.* ]]; then bind '"\C-xk": "\C-a hstr -k \C-j"'; fi
+      export HSTR_TIOCSTI=y
+    marker: "# {mark} hstr ANSIBLE MANAGED BLOCK"
+    path: "{{ ansible_env.HOME }}/.bashrc"

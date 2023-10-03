@@ -1,0 +1,22 @@
+# Application Manager service
+services:
+  manager:
+    image: "{{ manager_image }}:{{ manager_tag }}"
+    pull_policy: always
+    privileged: true  # https://www.educba.com/docker-privileged/
+    env_file:
+      - .env
+    healthcheck:
+      test: curl -sS --fail http://127.0.0.1:5000 || exit 1
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - /etc/hostname:/etc/hostname:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /greengrass:/greengrass
+      - /config:/config
+      - /tmp:/tmp
+      - /var/run/docker.sock:/var/run/docker.sock
+      # greengrass service
+      - /run:/run

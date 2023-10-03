@@ -6,10 +6,6 @@
 
 * [About](#about)
 * [Usage](#usage)
-  * [Requirements](#requirements)
-  * [Role Variables](#role-variables)
-  * [Role Tags](#role-tags)
-  * [Usage Example](#usage-example)
 * [Contributing](#contributing)
 
 ## About
@@ -18,7 +14,27 @@ This [Ansible][ans] role is designed to bootstrap an edge server for [Tapway](ht
 
 ## Usage
 
-COMING SOON
+Create `inventory.yml` file with your hosts from the template below:
+```yaml
+all:
+  hosts:
+    tapway:
+      ansible_host: <host IP or domain>
+      ansible_user: <user name>
+      ansible_ssh_private_key_file: private_key  # Should be commented if ansible_ssh_pass uncommented
+#      ansible_ssh_pass: <Uncomment and replace with a real value if SSH connection use password instead of the key>
+#      ansible_ssh_port: <Uncomment and replace with a real value if not default(22)>
+#      ansible_become_pass: <Uncomment and replace with a real value if the user needs a password to be a sudoer>
+#    <second host name>:
+#      ...
+```
+and execute:
+```shell
+docker run  --network host \
+  -v ./inventory.yml:/edge-server/tests/inventory.yml \
+  -v <path to the SSH key>:/edge-server/tests/private_key \
+  cachuperia/ansible-role-edge-server
+```
 
 ## Contributing
 
@@ -36,7 +52,7 @@ Run `make` to list all available targets.
 
 ### Testing
 
-COMING SOON
+Execute `make test` for minimal docker image test or `make -C edge-server tests` for more tests.
 
 ### CD/CI
 

@@ -1,0 +1,47 @@
+# Mappings for facts
+deb_architecture:
+  "aarch64": "arm64"
+  "x86_64": "amd64"
+
+gg_architecture:
+  "aarch64": "aarch64"
+  "x86_64": "x86-64"
+
+# Default credentials
+portainer_password: TapwayVisionTrack
+
+# Edge Server environment variables
+# TODO replace image name after migration to the tapway docker
+manager_image: cachuperia/edge-server-manager
+# edge_server_manager_image: gotapway/edge-server-manager
+manager_tag: latest
+manager_logging_level: INFO
+manager_mqtt_port: 8883
+# TODO set production as default after deployment
+manager_cloud_api_url: https://6rtcfkz6vh.execute-api.ap-southeast-1.amazonaws.com  # test environment
+
+# Default packages and apt parameters
+cache_valid_time: 3600
+
+apt_packages:
+  - build-essential
+  - ca-certificates
+  - cmake
+  - curl
+  - gnupg
+  - lsb-release
+  - make
+  - net-tools
+  - python3
+  - python3-pip
+  - ubuntu-drivers-common
+  - wget
+
+# Nvidia defaults
+nvidia_docker_repo_base_url: "https://nvidia.github.io/nvidia-docker"
+nvidia_docker_repo_gpg_url: "{{ nvidia_docker_repo_base_url }}/gpgkey"
+
+# Greengrass service defaults
+greengrass_group: ggc_group
+greengrass_user: ggc_user
+greengrass_version: "1.11.6"

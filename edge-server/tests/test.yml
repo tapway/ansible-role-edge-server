@@ -1,0 +1,4 @@
+- name: Role testing playbook
+  hosts: all
+  roles:
+    - ../../edge-server

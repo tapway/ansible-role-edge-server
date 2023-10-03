@@ -1,0 +1,11 @@
+- name: Copy docker-compose file
+  notify:
+    - Start portainer stack
+  ansible.builtin.copy:
+    dest: "{{ ansible_env.HOME }}/opt/docker-compose.portainer.yml"
+    src: files/opt/docker-compose.portainer.yml
+
+- name: Create password file
+  ansible.builtin.template:
+    dest: "{{ ansible_env.HOME }}/opt/portainer-pass"
+    src: templates/opt/portainer-pass

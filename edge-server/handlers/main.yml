@@ -1,0 +1,62 @@
+# https://www.cherryservers.com/blog/how-to-define-and-use-handlers-in-ansible-playbooks
+
+- name: Reboot
+  become: true
+  ansible.builtin.reboot:
+    msg: Rebooting to complete system upgrade
+    reboot_timeout: 120
+
+- name: Restart docker daemon
+  become: true
+  with_items:
+    - docker
+    - containerd
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: restarted
+    enabled: true
+
+- name: Restart vsFTPd
+  become: true
+  ansible.builtin.service:
+    name: vsftpd
+    state: restarted
+    enabled: true
+
+- name: Restart frp-client
+  become: true
+  ansible.builtin.service:
+    name: frp-client
+    state: restarted
+    enabled: true
+
+- name: Enable greengrass.service
+  become: true
+  ansible.builtin.service:
+    name: greengrass
+    state: stopped
+    enabled: true
+
+- name: Start portainer stack
+  become: true
+  failed_when: portainer_stack.rc != 0
+  register: portainer_stack
+  ansible.builtin.command: "docker compose -p portainer -f {{ ansible_env.HOME }}/opt/docker-compose.portainer.yml up -d"
+
+- name: Start manager stack
+  become: true
+  failed_when: edge_server_stack.rc != 0
+  register: edge_server_stack
+  ansible.builtin.shell:
+    cmd: |
+      docker compose -f docker-compose.manager.yml pull
+      docker compose -p manager -f docker-compose.manager.yml down
+      docker compose -p manager -f docker-compose.manager.yml up -d
+    chdir: "{{ ansible_env.HOME }}/opt/"
+
+- name: Reload /etc/environment
+  failed_when: reload_etc_environment.rc != 0
+  register: reload_etc_environment
+  ansible.builtin.shell: "set -a; source /etc/environment; set +a;"
+  args:
+    executable: /bin/bash
