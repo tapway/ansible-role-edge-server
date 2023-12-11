@@ -1,0 +1,94 @@
+services:
+  netdata:
+    image: netdata/netdata:v1.44.0
+    container_name: netdata
+    pid: host
+    network_mode: host
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - ./netdataconfig/netdata:/etc/netdata
+      - netdatalib:/var/lib/netdata
+      - netdatacache:/var/cache/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+# Application stack
+  mqtt:
+    image: eclipse-mosquitto:1.6.15-openssl
+    container_name: mqtt
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    networks:  &default_networks
+      - sync
+    deploy:  &default_deploy
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 20
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    command: postgres -c log_statement=all -c listen_addresses='*'
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 30s
+      retries: 10
+    networks:  *default_networks
+    deploy: *default_deploy
+
+  rabbitmq:
+    image: rabbitmq:latest
+    container_name: rabbitmq
+    volumes:
+      - rabbitmq_data:/var/lib/rmq/data
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 1s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:  *default_networks
+    deploy: *default_deploy
+
+  redis:
+    image: redis:7.0.2-alpine
+    container_name: redis
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:  *default_networks
+    deploy: *default_deploy
+
+volumes:
+  netdatalib:
+  netdatacache:
+  postgres_data:
+  rabbitmq_data:
+  redis_data:
+
+networks:
+  sync:
+    driver: bridge
