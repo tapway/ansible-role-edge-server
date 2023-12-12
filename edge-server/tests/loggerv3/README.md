@@ -2,13 +2,15 @@
 
 Deployment mode - `stand-alone`(can be upgraded to `parent - child`)
 
+Usage - run MVP as `docker compose up -d`
+
 UI available at http://localhost:19999, OpenAPI spec - https://learn.netdata.cloud/api
 
 ## Configuration
 
 ```shell
 cd /etc/netdata
-./edit-config <collector>.config
+./edit-config <collector>.conf
 ```
 
 ## Alerts
@@ -17,7 +19,7 @@ cd /etc/netdata
 
 - Disc space < 90%
 - Inodes < 90%
-- Free RAM < 90% 
+- Free RAM < 90%
 - System logs errors
 - Docker container not healthy
 - Docker container stopped
@@ -36,12 +38,6 @@ cd /etc/netdata
 
 Documentation - https://learn.netdata.cloud/docs/alerting/notifications/agent-dispatched-notifications/slack
 
+### Email
 
-# Metric collection
-- MQTT
-- PostgreSQL
-- RabbitMQ
-- Redis
-
-- Python producer for Redis, MQTT, RabbitMQ
-- 
+[TO DO]
