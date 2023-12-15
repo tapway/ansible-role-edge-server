@@ -28,17 +28,32 @@
     name: "{{ item }}"
     cache_valid_time: "{{ cache_valid_time }}"
 
-# - name: Install packages arm64
-#   become: true
-#   when: deb_arch == "arm64"
-#   notify:
-#    - Restart docker daemon
-#   with_items:
-#     - nvidia-jetpack
-#     - docker-compose-plugin
-#   ansible.builtin.apt:
-#     name: "{{ item }}"
-#     cache_valid_time: "{{ cache_valid_time }}"
+- name: Add nvidia-docker apt key
+  become: true
+  when: tapway_gpu_arch != "cpu"
+  ansible.builtin.apt_key:
+    url: "{{ nvidia_docker_repo_gpg_url }}"
+    state: present
+
+- name: Add nvidia-docker repository to the apt sources
+  become: true
+  when: tapway_gpu_arch != "cpu"
+  ansible.builtin.get_url:
+    url: "{{ nvidia_docker_repo_base_url }}/{{ nvidia_distribution_name }}/nvidia-docker.list"
+    dest: "/etc/apt/sources.list.d/nvidia-docker.list"
+    mode: "0644"
+    owner: root
+    group: root
+
+- name: Install nvidia-docker2
+  become: true
+  when: tapway_gpu_arch != "cpu"
+  notify:
+    - Restart docker daemon
+  ansible.builtin.apt:
+    name: nvidia-docker2
+    state: present
+    update_cache: true
 
 - name: Create docker group
   become: true
@@ -60,6 +75,14 @@
   ansible.builtin.copy:
     src: "files/etc/docker/daemon.{{ deb_arch }}.json"
     dest: /etc/docker/daemon.json
+
+- name: Check if reboot is required
+  changed_when: reboot_required.stat.exists
+  notify: Reboot
+  register: reboot_required
+  ansible.builtin.stat:
+    get_checksum: false
+    path: /var/run/reboot-required
 
 - name: Flush handlers
   ansible.builtin.meta: flush_handlers
