@@ -1,13 +1,11 @@
 - name: Add drivers repository to the apt sources
   become: true
-  when: not nvidia_driver
   ansible.builtin.apt_repository:
     repo: "ppa:graphics-drivers/ppa"
     state: present
 
 - name: Get driver package version
   become: true
-  when: not nvidia_driver
   changed_when: false
   failed_when: false
   register: nvidia_driver_package_version
@@ -16,34 +14,9 @@
 
 - name: Install driver
   become: true
-  when: not nvidia_driver
   ansible.builtin.apt:
     name: "nvidia-driver-{{ nvidia_driver_package_version.stdout }}"
     cache_valid_time: "{{ cache_valid_time }}"
-
-- name: Add nvidia-docker apt key
-  become: true
-  ansible.builtin.apt_key:
-    url: "{{ nvidia_docker_repo_gpg_url }}"
-    state: present
-
-- name: Add nvidia-docker repository to the apt sources
-  become: true
-  ansible.builtin.get_url:
-    url: "{{ nvidia_docker_repo_base_url }}/{{ nvidia_distribution_name }}/nvidia-docker.list"
-    dest: "/etc/apt/sources.list.d/nvidia-docker.list"
-    mode: "0644"
-    owner: root
-    group: root
-
-- name: Install nvidia-docker2
-  become: true
-  notify:
-    - Restart docker daemon
-  ansible.builtin.apt:
-    name: nvidia-docker2
-    state: present
-    update_cache: true
 
 - name: Check if reboot is required
   changed_when: reboot_required.stat.exists

@@ -29,6 +29,7 @@ apt_packages:
   - cmake
   - curl
   - gnupg
+  - jq
   - lsb-release
   - make
   - net-tools
