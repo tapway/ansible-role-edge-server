@@ -8,6 +8,7 @@ version_variable = [
 version_pattern = [
     "README.md:^  gotapway/ansible-role-edge-server:v{version}"
 ]
+version_source = "tag"
 upload_to_pypi = false
 upload_to_release = false
 commit_subject = "chore(release): {version}  [skip actions]"
