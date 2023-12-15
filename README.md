@@ -1,6 +1,6 @@
 # ansible-role-edge-server
 
-![checks][checks]
+![checks][ch] ![release][r] ![publish][p]
 
 ## Table Of Contents
 
@@ -13,6 +13,7 @@
 This [Ansible][ans] role is designed to bootstrap an edge server for [Tapway](https://gotapway.com/solutions) `VisionTrack`/`VehicleTrack` applications. Follow the role's [README](edge-server/README.md) for details.
 
 ## Usage
+
 
 Create `inventory.yml` file with your hosts list from the template below:
 
@@ -34,7 +35,7 @@ and execute:
 docker run  --network host \
   -v ./inventory.yml:/edge-server/tests/inventory.yml \
   -v <path to the SSH key>:/edge-server/tests/private_key \
-  cachuperia/ansible-role-edge-server
+  cachuperia/ansible-role-edge-server:v1.0.0
 ```
 
 ## Contributing
@@ -58,6 +59,8 @@ Execute `make test` for minimal docker image test or `make -C edge-server tests`
 ### CD/CI
 
 - `check` GitHub [workflow][wch].
+- `release` GitHub [workflow][wr]. Release commit types: `fix`, `feat`.
+- `publish` GitHub [workflow][wp].
 
 
 [ans]: https://docs.ansible.com/
@@ -66,5 +69,9 @@ Execute `make test` for minimal docker image test or `make -C edge-server tests`
 
 [wch]: .github/workflows/checks.yml
 [wr]: .github/workflows/release.yml
+[wp]: .github/workflows/publish.yml
 
-[checks]: https://github.com/tapway/ansible-role-edge-server/actions/workflows/checks.yml/badge.svg
+
+[ch]: https://github.com/tapway/ansible-role-edge-server/actions/workflows/checks.yml/badge.svg
+[r]: https://github.com/tapway/ansible-role-edge-server/actions/workflows/release.yml/badge.svg
+[p]: https://github.com/tapway/ansible-role-edge-server/actions/workflows/publish.yml/badge.svg

@@ -15,6 +15,15 @@
     state: directory
     mode: '0755'
 
+- name: Install apt packages
+  tags:
+    - apt
+  ansible.builtin.include_tasks:
+    file: apt.yml
+    apply:
+      tags:
+        - apt
+
 - name: Update installed apt packages
   when: deb_arch == "amd64"  # FIXME Jetson can't `apt upgrade` (break Docker filesystem as result)
   tags:
@@ -25,12 +34,14 @@
       tags:
         - apt
 
-- name: Install apt packages
-  when: deb_arch == "amd64"
+- name: Install Nvidia GPU drivers and tools
   tags:
     - apt
+  when:
+    - tapway_gpu_var == "gpu"
+    - not nvidia_driver
   ansible.builtin.include_tasks:
-    file: apt.yml
+    file: gpu.yml
     apply:
       tags:
         - apt
@@ -81,15 +92,6 @@
       tags:
         - mvs
 
-- name: Install Nvidia GPU drivers and tools
-  tags:
-    - gpu
-  when: tapway_gpu_var == "gpu"
-  ansible.builtin.include_tasks:
-    file: nvidia.yml
-    apply:
-      tags:
-        - gpu
 
 - name: Install Manager service compose stack
   tags:

@@ -1,13 +1,6 @@
 - name: Create docker-compose file
   notify:
     - Start manager stack
-  ansible.builtin.copy:
-    src: templates/opt/docker-compose.manager.yml
-    dest: "{{ ansible_env.HOME }}/opt/docker-compose.manager.yml"
-
-- name: Create docker-compose file
-  notify:
-    - Start manager stack
   ansible.builtin.template:
     dest: "{{ ansible_env.HOME }}/opt/docker-compose.manager.yml"
     src: templates/opt/docker-compose.manager.yml
