@@ -17,12 +17,12 @@ jobs:
           username: ${{ secrets.AUTOMATION_DOCKER_HUB_USER }}
           password: ${{ secrets.AUTOMATION_DOCKER_HUB_PASS }}
       - name: Build and push
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags:
+          tags: |
             gotapway/ansible-role-edge-server:${{  github.ref_name }}
             gotapway/ansible-role-edge-server:latest
