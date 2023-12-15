@@ -35,7 +35,7 @@ and execute:
 docker run  --network host \
   -v ./inventory.yml:/edge-server/tests/inventory.yml \
   -v <path to the SSH key>:/edge-server/tests/private_key \
-  cachuperia/ansible-role-edge-server:v1.0.0
+  gotapway/ansible-role-edge-server:v1.0.0
 ```
 
 ## Contributing
