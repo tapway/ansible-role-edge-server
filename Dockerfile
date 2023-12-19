@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN --mount=type=cache,target=/root/.cache/apt <<EOF
     apt-get update
-    apt-get install -y --no-install-recommends ssh
+    apt-get install -y --no-install-recommends ssh sshpass
     apt-get -y clean
     apt-get -y autoremove
     rm -rf /var/lib/apt/lists/*
