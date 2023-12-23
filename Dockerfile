@@ -19,4 +19,4 @@ EOF
 
 COPY . .
 WORKDIR /edge-server/tests
-CMD ansible-playbook test.yml
+CMD ansible-playbook playbook.yml
