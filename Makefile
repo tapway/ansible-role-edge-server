@@ -23,20 +23,8 @@ init: repo-init  ## All init steps at once
 check:  ## Run pre-commit against all files
 	pre-commit run --all-files
 
-##@ Tests
-.PONY: test
-
-test:  ## Run base docker image test
-	$(MAKE) -C edge-server/tests vagrant-up
-	docker compose build
-	docker compose up
-	$(MAKE) -C edge-server/tests vagrant-destroy
-
 ##@ Miscellaneous
 .PHONY: secrets-baseline-create secrets-baseline-audit secrets-update
-
-push:  ## Push Docker image
-	docker compose push
 
 secrets-baseline-create:  ## Create/update .secrets.baseline file
 	detect-secrets scan --baseline .secrets.baseline
