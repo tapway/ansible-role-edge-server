@@ -1,0 +1,39 @@
+- name: Uninstall docker compose
+  become: true
+  with_items:
+    - docker-compose
+    - docker-compose-plugin
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: "absent"
+
+- name: Check docker compose version
+  changed_when: false
+  register: installed_docker_compose_version
+  ansible.builtin.shell: |
+    docker compose version 2>&1 | cut -d ' ' -f 4
+
+- name: Remove docker compose
+  when:
+    - installed_docker_compose_version.stdout is not ansible.builtin.version(docker_compose_version)
+  become: true
+  with_items:
+    - /usr/local/bin/docker-compose
+    - /usr/bin/docker-compose
+    - /usr/local/lib/docker/cli-plugins/docker-compose
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+
+- name: Create directory if it does not exist
+  become: true
+  ansible.builtin.file:
+    path: /usr/local/lib/docker/cli-plugins
+    state: directory
+
+- name: Install docker compose
+  become: true
+  ansible.builtin.get_url:
+    url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-{{ ansible_system }}-{{ ansible_architecture }}"
+    dest: /usr/local/lib/docker/cli-plugins/docker-compose
+    mode: "0755"
