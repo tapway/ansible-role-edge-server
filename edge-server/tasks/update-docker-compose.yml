@@ -1,7 +1,10 @@
 - name: Uninstall docker compose
   become: true
+  with_items:
+    - docker-compose
+    - docker-compose-plugin
   ansible.builtin.apt:
-    name: "docker-compose-plugin"
+    name: "{{ item }}"
     state: "absent"
 
 - name: Check docker compose version
@@ -21,6 +24,12 @@
   ansible.builtin.file:
     path: "{{ item }}"
     state: absent
+
+- name: Create directory if it does not exist
+  become: true
+  ansible.builtin.file:
+    path: /usr/local/lib/docker/cli-plugins
+    state: directory
 
 - name: Install docker compose
   become: true
