@@ -18,10 +18,13 @@ repo-init:  ## Install pre-commit in repo
 init: repo-init  ## All init steps at once
 
 ##@ Checks
-.PHONY: check
+.PHONY: check test
 
 check:  ## Run pre-commit against all files
 	pre-commit run --all-files
+
+test:  ## Run playbook
+	 ANSIBLE_CONFIG=./edge-server/tests/ansible.cfg ansible-playbook -i inventory.yml ./edge-server/tests/playbook.yml
 
 ##@ Miscellaneous
 .PHONY: secrets-baseline-create secrets-baseline-audit secrets-update

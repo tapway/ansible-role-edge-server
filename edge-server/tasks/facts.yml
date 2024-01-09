@@ -164,6 +164,23 @@
   args:
     executable: /usr/bin/python3
 
+- name: Check nvidia-docker existence
+  changed_when: false
+  failed_when: false
+  register: nvidia_docker_cmd
+  ansible.builtin.command: nvidia-docker
+
+- name: Set nvidia-docker fact
+  changed_when: false
+  failed_when: nvidia_docker_fact.rc != 0
+  register: nvidia_docker_fact
+  ansible.builtin.shell:
+    cmd: |
+      fact = "no" if {{ nvidia_docker_cmd.rc }} != 0 else "yes"
+      print(fact)
+  args:
+    executable: /usr/bin/python3
+
 - name: Set facts
   ansible.builtin.set_fact:
     deb_arch: "{{ deb_architecture[ansible_architecture] }}"
@@ -173,6 +190,7 @@
     nvidia_driver: "{{ nvidia_smi_fact.stdout }}"
     tapway_gpu_var: "{{ tapway_gpu_arch.stdout }}"
     docker_version: "{{ docker_fact.stdout }}"
+    nvidia_docker: "{{ nvidia_docker_fact.stdout }}"
 
 - name: Print Edge Server facts
   tags:
@@ -189,3 +207,4 @@
       - "TAPWAY_GPU_ARCH={{ tapway_gpu_var }}"
       - "Nvidia driver installed: {{ nvidia_driver }}"
       - "Docker installed: {{ docker_version }}"
+      - "Nvidia Docker installed: {{ nvidia_docker }}"
