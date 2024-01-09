@@ -30,14 +30,18 @@
 
 - name: Add nvidia-docker apt key
   become: true
-  when: tapway_gpu_arch != "cpu"
+  when:
+    - tapway_gpu_arch != "cpu"
+    - not nvidia_docker
   ansible.builtin.apt_key:
     url: "{{ nvidia_docker_repo_gpg_url }}"
     state: present
 
 - name: Add nvidia-docker repository to the apt sources
   become: true
-  when: tapway_gpu_arch != "cpu"
+  when:
+    - tapway_gpu_arch != "cpu"
+    - not nvidia_docker
   ansible.builtin.get_url:
     url: "{{ nvidia_docker_repo_base_url }}/{{ nvidia_distribution_name }}/nvidia-docker.list"
     dest: "/etc/apt/sources.list.d/nvidia-docker.list"
@@ -47,7 +51,9 @@
 
 - name: Install nvidia-docker2
   become: true
-  when: tapway_gpu_arch != "cpu"
+  when:
+    - tapway_gpu_arch != "cpu"
+    - not nvidia_docker
   notify:
     - Restart docker daemon
   ansible.builtin.apt:
