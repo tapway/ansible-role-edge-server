@@ -46,6 +46,18 @@
       tags:
         - apt
 
+- name: Install Jetson drivers and tools
+  tags:
+    - jetson
+  when:
+    - deb_arch == "arm64"
+    - not jtop_version
+  ansible.builtin.include_tasks:
+    file: jetson.yml
+    apply:
+      tags:
+        - jetson
+
 - name: Install and configure shell history search
   when: deb_arch == "amd64"
   tags:

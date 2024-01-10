@@ -181,6 +181,23 @@
   args:
     executable: /usr/bin/python3
 
+- name: Check jtop existence
+  changed_when: false
+  failed_when: false
+  register: jtop_cmd
+  ansible.builtin.command: jtop -v
+
+- name: Set jtop fact
+  changed_when: false
+  failed_when: nvidia_docker_fact.rc != 0
+  register: jtop_fact
+  ansible.builtin.shell:
+    cmd: |
+      fact = "no" if {{ jtop_cmd.rc }} != 0 else """{{ jtop_cmd.stdout }}"""
+      print(fact)
+  args:
+    executable: /usr/bin/python3
+
 - name: Set facts
   ansible.builtin.set_fact:
     deb_arch: "{{ deb_architecture[ansible_architecture] }}"
@@ -191,6 +208,7 @@
     tapway_gpu_var: "{{ tapway_gpu_arch.stdout }}"
     docker_version: "{{ docker_fact.stdout }}"
     nvidia_docker: "{{ nvidia_docker_fact.stdout }}"
+    jtop_version: "{{ jtop_fact.stdout }}"
 
 - name: Print Edge Server facts
   tags:
@@ -208,3 +226,4 @@
       - "Nvidia driver installed: {{ nvidia_driver }}"
       - "Docker installed: {{ docker_version }}"
       - "Nvidia Docker installed: {{ nvidia_docker }}"
+      - "Jtop installed: {{ jtop_version }}"
