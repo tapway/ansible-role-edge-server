@@ -135,3 +135,12 @@
     apply:
       tags:
         - portainer
+
+- name: Setup monitoring
+  tags:
+    - monitoring
+  ansible.builtin.include_tasks:
+    file: monitoring.yml
+    apply:
+      tags:
+        - monitoring

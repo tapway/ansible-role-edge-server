@@ -60,3 +60,9 @@
   ansible.builtin.shell: "set -a; source /etc/environment; set +a;"
   args:
     executable: /bin/bash
+
+- name: Start monitoring stack
+  become: true
+  failed_when: monitoring_stack.rc != 0
+  register: monitoring_stack
+  ansible.builtin.command: "docker compose -p monitoring -f {{ ansible_env.HOME }}/opt/stacks/netdata/docker-compose.yml up -d --force-recreate"

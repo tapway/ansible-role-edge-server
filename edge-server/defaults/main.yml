@@ -44,3 +44,16 @@ nvidia_docker_repo_gpg_url: "{{ nvidia_docker_repo_base_url }}/gpgkey"
 greengrass_group: ggc_group
 greengrass_user: ggc_user
 greengrass_version: "1.11.6"
+
+# Monitoring defaults
+netdata_version: "1.44.1"
+
+netdata_slack_webhook_url: ""
+netdata_slack_recipient: ""
+
+netdata_ram_usage_warn: "80"
+netdata_ram_usage_crit: "90"
+
+netdata_postgresql_dsn: ""
+netdata_rabbitmq_url: ""
+netdata_redis_address: ""
