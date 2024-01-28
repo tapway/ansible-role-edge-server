@@ -1,0 +1,56 @@
+- name: Copy configuration files
+  become: true
+  notify:
+    - Start monitoring stack
+  ansible.builtin.copy:
+    dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/"
+    src: files/opt/stacks/netdata/
+
+- name: Create docker-compose file
+  become: true
+  notify:
+    - Start monitoring stack
+  ansible.builtin.template:
+    dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/docker-compose.yml"
+    src: templates/opt/stacks/netdata/docker-compose.yml
+
+- name: Create a configuration directories if it does not exist
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/go.d"
+    - "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/health.d"
+
+- name: Create PostgreSQL configuration
+  become: true
+  notify:
+    - Start monitoring stack
+  ansible.builtin.template:
+    dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/go.d/postgres.conf"
+    src: templates/opt/stacks/netdata/netdata/go.d/postgres.conf
+
+- name: Create Redis configuration
+  become: true
+  notify:
+    - Start monitoring stack
+  ansible.builtin.template:
+    dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/go.d/redis.conf"
+    src: templates/opt/stacks/netdata/netdata/go.d/redis.conf
+
+- name: Create RabbitMQ configuration
+  become: true
+  notify:
+    - Start monitoring stack
+  ansible.builtin.template:
+    dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/go.d/rabbitmq.conf"
+    src: templates/opt/stacks/netdata/netdata/go.d/rabbitmq.conf
+
+- name: Configure alarms notification channels
+  become: true
+  notify:
+    - Start monitoring stack
+  ansible.builtin.template:
+    dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/health_alarm_notify.conf"
+    src: templates/opt/stacks/netdata/netdata/health_alarm_notify.conf
