@@ -86,17 +86,16 @@
       tags:
         - docker
 
-- name: Update Docker Compose
+- name: Setup Docker Compose
   when:
-    - ansible_distribution == 'Ubuntu'
-    - ansible_distribution_version is ansible.builtin.version('18.04')
+    - docker_compose_version_var != docker_compose_version
   tags:
-    - docker-compose
+    - docker
   ansible.builtin.include_tasks:
-    file: update-docker-compose.yml
+    file: docker-compose.yml
     apply:
       tags:
-        - docker-compose
+        - docker
 
 - name: Setup AWS Greengrass
   tags:
