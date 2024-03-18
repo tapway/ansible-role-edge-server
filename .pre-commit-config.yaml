@@ -4,6 +4,7 @@ repos:
     hooks:
       - id: check-json
       - id: check-yaml
+        exclude: edge-server/templates/static-ip-config.yml
       - id: end-of-file-fixer
       - id: no-commit-to-branch
       - id: trailing-whitespace

@@ -143,3 +143,12 @@
     apply:
       tags:
         - monitoring
+
+- name: Assign private IP
+  tags:
+    - ip
+  ansible.builtin.include_tasks:
+    file: static-ip.yml
+    apply:
+      tags:
+        - ip
