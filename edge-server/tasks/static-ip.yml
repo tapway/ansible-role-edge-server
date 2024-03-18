@@ -1,0 +1,52 @@
+- name: Install netplan
+  become: true
+  ansible.builtin.apt:
+    name: netplan.io
+    update_cache: true
+    cache_valid_time: "{{ cache_valid_time }}"
+
+- name: Get default network interface
+  changed_when: false
+  register: interface
+  ansible.builtin.shell: |
+    set -o pipefail
+    ip route | awk '/default/ { print $5 }' | head -n 1
+  args:
+    executable: /bin/bash
+
+- name: Get IP
+  changed_when: false
+  register: ip
+  ansible.builtin.shell: |
+    set -o pipefail
+    ip addr show {{ interface.stdout }} | grep 'inet' | head -n 1 | awk '/inet/ { print $2 }'
+  args:
+    executable: /bin/bash
+
+- name: Get default gateway
+  changed_when: false
+  register: gateway
+  ansible.builtin.shell: |
+    set -o pipefail
+    ip route | grep 'default' | awk '{ print $3 }' | head -n 1
+  args:
+    executable: /bin/bash
+
+- name: Create static ip config file
+  become: true
+  ansible.builtin.template:
+    dest: "/etc/netplan/01-static-ip-config.yaml"
+    src: templates/static-ip-config.yml
+    mode: "0644"
+
+- name: Start and enable networkd service
+  become: true
+  ansible.builtin.systemd_service:
+    name: systemd-networkd
+    state: started
+    enabled: true
+
+- name: Apply netplan config
+  become: true
+  changed_when: false
+  ansible.builtin.command: netplan apply
