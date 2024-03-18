@@ -34,7 +34,7 @@ apt_packages:
   - wget
 
 # Docker compose version
-docker_compose_version: "v2.20.0"
+docker_compose_version: "v2.24.5"
 
 # Nvidia defaults
 nvidia_docker_repo_base_url: "https://nvidia.github.io/nvidia-docker"

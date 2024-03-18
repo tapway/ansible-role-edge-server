@@ -164,6 +164,23 @@
   args:
     executable: /usr/bin/python3
 
+- name: Check docker compose existence  # noqa command-instead-of-shell
+  changed_when: false
+  failed_when: false
+  register: docker_compose_cmd
+  ansible.builtin.shell: docker compose version
+
+- name: Set docker compose fact
+  changed_when: false
+  failed_when: docker_compose_fact.rc != 0
+  register: docker_compose_fact
+  ansible.builtin.shell:
+    cmd: |
+      fact = "no" if {{ docker_compose_cmd.rc }} != 0 else """{{ docker_compose_cmd.stdout }}""".split()[-1]
+      print(fact)
+  args:
+    executable: /usr/bin/python3
+
 - name: Check nvidia-docker existence
   changed_when: false
   failed_when: false
@@ -207,6 +224,7 @@
     nvidia_driver: "{{ nvidia_smi_fact.stdout }}"
     tapway_gpu_var: "{{ tapway_gpu_arch.stdout }}"
     docker_version: "{{ docker_fact.stdout }}"
+    docker_compose_version_var: "{{ docker_compose_fact.stdout }}"
     nvidia_docker: "{{ nvidia_docker_fact.stdout }}"
     jtop_version: "{{ jtop_fact.stdout }}"
 
@@ -225,5 +243,6 @@
       - "TAPWAY_GPU_ARCH={{ tapway_gpu_var }}"
       - "Nvidia driver installed: {{ nvidia_driver }}"
       - "Docker installed: {{ docker_version }}"
+      - "Docker compose installed: {{ docker_compose_version_var }}"
       - "Nvidia Docker installed: {{ nvidia_docker }}"
       - "Jtop installed: {{ jtop_version }}"
