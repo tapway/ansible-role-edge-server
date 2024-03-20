@@ -19,6 +19,7 @@ manager_mqtt_port: 8883
 cache_valid_time: 3600
 
 apt_packages:
+  - avahi-daemon
   - build-essential
   - ca-certificates
   - cmake
