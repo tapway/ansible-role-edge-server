@@ -5,8 +5,7 @@ repos:
       - id: check-json
       - id: check-yaml
         exclude: |
-          (?x)^(edge-server/templates/static-ip-config.yml|
-                edge-server/templates/opt/stacks/netdata/docker-compose.yml
+          (?x)^(edge-server/templates/opt/stacks/netdata/docker-compose.yml
           )$
       - id: end-of-file-fixer
       - id: no-commit-to-branch

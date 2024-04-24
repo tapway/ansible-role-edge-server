@@ -6,6 +6,14 @@
     dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/"
     src: files/opt/stacks/netdata/
 
+- name: Create configuration file for netdata.conf
+  become: true
+  notify:
+    - Start monitoring stack
+  ansible.builtin.template:
+    dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/netdata.conf"
+    src: templates/opt/stacks/netdata/netdata/netdata.conf
+
 - name: Create configuration file for go.d.conf
   become: true
   notify:
@@ -13,6 +21,14 @@
   ansible.builtin.template:
     dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/go.d.conf"
     src: templates/opt/stacks/netdata/netdata/go.d.conf
+
+- name: Create configuration file for python.d.conf
+  become: true
+  notify:
+    - Start monitoring stack
+  ansible.builtin.template:
+    dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/python.d.conf"
+    src: templates/opt/stacks/netdata/netdata/python.d.conf
 
 - name: Create docker-compose file
   become: true
@@ -22,14 +38,26 @@
     dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/docker-compose.yml"
     src: templates/opt/stacks/netdata/docker-compose.yml
 
-- name: Create a configuration directories if it does not exist
+- name: Create configuration directories if they do not exist
   become: true
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
   loop:
     - "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/go.d"
+    - "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/python.d"
     - "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/health.d"
+
+- name: Create nvidia-smi configuration
+  become: true
+  notify:
+    - Start monitoring stack
+  when:
+    - tapway_gpu_var == "gpu"
+    - nvidia_driver
+  ansible.builtin.template:
+    dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/go.d/nvidia_smi.conf"
+    src: templates/opt/stacks/netdata/netdata/go.d/nvidia_smi.conf
 
 - name: Copy configuration file for dGPU alerts
   become: true
@@ -42,16 +70,30 @@
     dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/health.d/"
     src: files/opt/gpu.conf
 
-- name: Create nvidia-smi configuration
+- name: Copy configuration files for jetson
   become: true
   notify:
     - Start monitoring stack
   when:
-    - tapway_gpu_var == "gpu"
-    - nvidia_driver
-  ansible.builtin.template:
-    dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/go.d/nvidia_smi.conf"
-    src: templates/opt/stacks/netdata/netdata/go.d/nvidia_smi.conf
+    - tapway_gpu_var == "jetpack5.1"
+    - jtop
+  with_items:
+    - jtop.chart.py
+    - jtop.conf
+  ansible.builtin.copy:
+    dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/python.d/"
+    src: "files/opt/{{ item }}"
+
+- name: Copy configuration file for jetson alerts
+  become: true
+  notify:
+    - Start monitoring stack
+  when:
+    - tapway_gpu_var == "jetpack5.1"
+    - jtop
+  ansible.builtin.copy:
+    dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/health.d/"
+    src: files/opt/jetson.conf
 
 - name: Create PostgreSQL configuration
   become: true

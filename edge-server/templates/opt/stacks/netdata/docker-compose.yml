@@ -2,7 +2,7 @@ services:
 
 # Monitoring stack
   netdata:
-    image: "netdata/netdata:v{{ netdata_version }}"
+    image: {{ netdata_image }}
     container_name: netdata
     pid: host
     network_mode: host
@@ -12,6 +12,9 @@ services:
       - SYS_ADMIN
     security_opt:
       - apparmor:unconfined
+{% if jtop_env_var %}
+{{ jtop_env_var | indent(width=4, first=True)}}
+{% endif %}
     volumes:
       - ./netdata/:/etc/netdata
       - netdata_lib:/var/lib/netdata
@@ -23,7 +26,12 @@ services:
       - /sys:/host/sys:ro
       - /etc/os-release:/host/etc/os-release:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+{% if jtop_volume %}
+{{ jtop_volume | indent(width=6, first=True) }}
+{% endif %}
+{% if deploy %}
 {{ deploy | indent(width=4, first=True) }}
+{% endif %}
 
 volumes:
   netdata_lib:
