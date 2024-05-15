@@ -115,7 +115,6 @@
       tags:
         - mvs
 
-
 - name: Install Manager service compose stack
   tags:
     - manager
@@ -143,3 +142,12 @@
     apply:
       tags:
         - monitoring
+
+- name: Cronjob to delete images
+  tags:
+    - delete_images
+  ansible.builtin.include_tasks:
+    file: delete-images.yml
+    apply:
+      tags:
+        - delete_images
