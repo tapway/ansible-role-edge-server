@@ -1,0 +1,98 @@
+- name: Create imagedelete dir
+  become: true
+  register: imagedelete
+  ansible.builtin.file:
+    path: /root/imagedelete
+    state: directory
+    mode: '0755'
+
+- name: Create empty files to root  # noqa: no-handler
+  become: true
+  when: imagedelete is changed
+  ansible.builtin.file:
+    path: /root/imagedelete/{{ item }}
+    state: touch
+    mode: '0755'
+  with_items:
+    - del.sh
+
+- name: Create log file for cronjob
+  become: true
+  ansible.builtin.file:
+    path: /var/log/samurai-cron.log
+    state: touch
+    mode: '0644'
+    modification_time: preserve
+    access_time: preserve
+
+- name: Copy imagedelete file content
+  become: true
+  # when: imagedelete is changed
+  ansible.builtin.copy:
+    dest: /root/imagedelete/del.sh
+    content: |
+      #!/bin/bash
+
+      exec 2>&1 &>>/var/log/samurai-cron.log
+
+      path="/images"
+      config_file="/config/middleware_config.json"
+
+      if [ -f "$config_file" ]; then
+        # Check if the key exists using jq
+        if jq -e ".data_retention" "$config_file" > /dev/null; then
+          days=`jq '.data_retention | .day_limit' $config_file`
+        else
+          days=7
+        fi
+      else
+        days=7
+      fi
+
+      find $path -type f -mtime +$days -delete
+
+      if [ -f "$config_file" ]; then
+        # Check if the key exists using jq
+        if jq -e ".data_retention" "$config_file" > /dev/null; then
+            size=`jq '.data_retention | .size_limit' $config_file`
+        else
+            size=20
+        fi
+      else
+          size=20
+      fi
+
+      # Convert GB to bytes
+      threshold_size_float=$(echo "$size * 1024 * 1024 * 1024" | bc)
+      # Convert the threshold size to the nearest integer
+      threshold_size=$(printf "%.0f" "$threshold_size_float")
+      directory_size=$(du -sb "$path" | awk '{print $1}')
+
+      if [ "$directory_size" -gt "$threshold_size" ]; then
+          echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Directory size exceeds $size GB. Deleting oldest files..."
+
+          # Delete oldest files until the directory size is below the threshold
+          while [ "$directory_size" -gt "$threshold_size" ]; do
+              # Find the oldest file in the directory and delete it
+              oldest_file=$(ls -1rt "$path" | head -n 1)
+              rm -rf "$path/$oldest_file"
+
+              # Recalculate the directory size
+              directory_size=$(du -sb "$path" | awk '{print $1}')
+          done
+      else
+          echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Directory size is below $size GB. No action needed."
+      fi
+    mode: '0755'
+
+# At 00:00 AM, every day
+- name: Run cronjob
+  become: true
+  ansible.builtin.cron:
+    name: "clean_images_folder"
+    minute: "00"
+    hour: "00"
+    day: "*"
+    month: "*"
+    state: present
+    job: bash /root/imagedelete/del.sh
