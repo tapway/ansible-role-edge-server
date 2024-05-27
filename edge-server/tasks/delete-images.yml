@@ -74,8 +74,8 @@
           # Delete oldest files until the directory size is below the threshold
           while [ "$directory_size" -gt "$threshold_size" ]; do
               # Find the oldest file in the directory and delete it
-              oldest_file=$(ls -1rt "$path" | head -n 1)
-              rm -rf "$path/$oldest_file"
+              oldest_file=$(find "$path" -type f -printf '%T+ %p\n' | sort | head -n 1 | awk '{ print $2 }')
+              rm -rf "$oldest_file"
 
               # Recalculate the directory size
               directory_size=$(du -sb "$path" | awk '{print $1}')
