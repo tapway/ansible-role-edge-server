@@ -4,7 +4,9 @@ repos:
     hooks:
       - id: check-json
       - id: check-yaml
-        exclude: edge-server/templates/static-ip-config.yml
+        exclude: |
+          (?x)^(edge-server/templates/opt/stacks/netdata/docker-compose.yml
+          )$
       - id: end-of-file-fixer
       - id: no-commit-to-branch
       - id: trailing-whitespace
@@ -12,7 +14,7 @@ repos:
     rev: v1.4.0
     hooks:
       - id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']
+        args: ['--baseline', '.secrets.baseline', '--exclude-lines', '/etc/passwd']
   - repo: https://github.com/ansible/ansible-lint.git
     rev: v6.20.0
     hooks:

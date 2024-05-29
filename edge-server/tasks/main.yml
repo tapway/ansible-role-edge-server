@@ -51,7 +51,7 @@
     - jetson
   when:
     - deb_arch == "arm64"
-    - not jtop_version
+    - not jtop
   ansible.builtin.include_tasks:
     file: jetson.yml
     apply:

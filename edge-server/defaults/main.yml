@@ -48,6 +48,7 @@ greengrass_version: "1.11.6"
 
 # Monitoring defaults
 netdata_version: "1.44.1"
+jtop_version: "4.2.7"
 
 netdata_slack_webhook_url: ""
 netdata_slack_recipient: ""
