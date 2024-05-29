@@ -37,16 +37,21 @@
 
       path="/images"
       config_file="/config/middleware_config.json"
+      default_days=7
+      default_size=20
 
       if [ -f "$config_file" ]; then
         # Check if the key exists using jq
         if jq -e ".data_retention" "$config_file" > /dev/null; then
-          days=`jq '.data_retention | .day_limit' $config_file`
+          days=$(jq -r '.data_retention.day_limit // empty' "$config_file")
+          if [ -z "$days" ]; then
+            days=$default_days
+          fi
         else
-          days=7
+          days=$default_days
         fi
       else
-        days=7
+        days=$default_days
       fi
 
       find $path -type f -mtime +$days -delete
@@ -54,12 +59,15 @@
       if [ -f "$config_file" ]; then
         # Check if the key exists using jq
         if jq -e ".data_retention" "$config_file" > /dev/null; then
-            size=`jq '.data_retention | .size_limit' $config_file`
+            size=$(jq -r '.data_retention.size_limit // empty' "$config_file")
+            if [ -z "$size" ]; then
+              size=$default_size
+            fi
         else
-            size=20
+            size=$default_size
         fi
       else
-          size=20
+          size=$default_size
       fi
 
       # Convert GB to bytes
