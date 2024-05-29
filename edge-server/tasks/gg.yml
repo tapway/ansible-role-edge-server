@@ -13,6 +13,7 @@
     - /images
     - /logs
     - /ftp-data
+    - /frpc-data
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
