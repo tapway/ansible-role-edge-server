@@ -46,7 +46,7 @@
       tags:
         - apt
 
-- name: Install Jetson drivers and tools
+- name: Install Jetson drivers and tools  # TODO install same version as netdata docker image
   tags:
     - jetson
   when:

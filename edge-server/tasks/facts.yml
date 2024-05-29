@@ -88,21 +88,26 @@
               elif major in ["6", "7"] and int(minor) > 0:
                   arch = "jetpack4.6.1"
               else:
-                 raise ValueError(version)
+                  raise ValueError(version)
           elif release == "34":
               if major == "1" and minor == "0":
                   arch = "jetpack5.0.0"
               elif major == "1" and minor == "1":
                   arch = "jetpack5.0.1"
               else:
-                 raise ValueError(version)
+                  raise ValueError(version)
           elif release == "35":
               if major == "1" and minor == "0":
                   arch = "jetpack5.0.2"
-              elif major in ["2", "3"] and minor == "1":
+              elif major in ["2", "3", "4"] and minor == "1":
                   arch = "jetpack5.1"
               else:
-                 raise ValueError(version)
+                  raise ValueError(version)
+          elif release == "36":
+              if major == "3" and minor == "0":
+                  arch = "jetpack6.0"
+              else:
+                  raise ValueError(version)
           else:
              raise ValueError(version)
           return arch
