@@ -147,6 +147,13 @@
   args:
     executable: /usr/bin/python3
 
+- name: Set nvidia-smi binary fact
+  when: nvidia_smi_fact.stdout
+  changed_when: false
+  failed_when: nvidia_smi.rc != 0
+  register: nvidia_smi
+  ansible.builtin.command: which nvidia-smi
+
 - name: Check docker existence  # noqa command-instead-of-shell
   changed_when: false
   failed_when: false
@@ -222,11 +229,29 @@
     host_name: "{{ hostname_cmd.stdout }}"
     nvidia_distribution_name: "{{ os_release_cmd.stdout }}"
     nvidia_driver: "{{ nvidia_smi_fact.stdout }}"
+    nvidia_smi_path: "{{ nvidia_smi.stdout }}"
     tapway_gpu_var: "{{ tapway_gpu_arch.stdout }}"
     docker_version: "{{ docker_fact.stdout }}"
     docker_compose_version_var: "{{ docker_compose_fact.stdout }}"
     nvidia_docker: "{{ nvidia_docker_fact.stdout }}"
     jtop_version: "{{ jtop_fact.stdout }}"
+
+- name: Set deploy config for gpu
+  ansible.builtin.set_fact:
+    deploy: |
+      {% if tapway_gpu_var == "gpu" %}
+      deploy:
+        resources:
+          reservations:
+            devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+      {% elif tapway_gpu_var == "cpu" %}
+      ""
+      {% else %}
+      runtime: nvidia
+      {% endif %}
 
 - name: Print Edge Server facts
   tags:
@@ -246,3 +271,4 @@
       - "Docker compose installed: {{ docker_compose_version_var }}"
       - "Nvidia Docker installed: {{ nvidia_docker }}"
       - "Jtop installed: {{ jtop_version }}"
+      - "nvidia-smi binary path: {{ nvidia_smi_path }}"
