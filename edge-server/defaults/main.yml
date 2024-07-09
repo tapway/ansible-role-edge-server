@@ -46,6 +46,9 @@ greengrass_group: ggc_group
 greengrass_user: ggc_user
 greengrass_version: "1.11.6"
 
+cpu_limit_pct: 90
+ram_limit_pct: 90
+
 # Monitoring defaults
 netdata_version: "1.44.1"
 
