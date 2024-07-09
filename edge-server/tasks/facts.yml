@@ -135,6 +135,51 @@
     regexp: "^TAPWAY_GPU_ARCH="
     line: "TAPWAY_GPU_ARCH={{ tapway_gpu_arch.stdout }}"
 
+- name: Get RAM stat
+  changed_when: false
+  failed_when: ram.rc != 0
+  register: ram
+  ansible.builtin.shell: |
+    set -o pipefail
+    total_ram_kb=$(free | grep 'Mem:' | awk '{print $2}')
+    ram_limit_kb=$(echo "$total_ram_kb * {{ ram_limit_pct }} * 0.01" | bc)
+    ram_limit_mb=$(echo "scale=0; ($ram_limit_kb / 1024) / 1" | bc)
+    echo $ram_limit_mb
+  args:
+    executable: /bin/bash
+
+- name: Set TAPWAY_RAM_LIMIT environment variable
+  become: true
+  notify:
+    - Reload /etc/environment
+  ansible.builtin.lineinfile:
+    dest: "/etc/environment"
+    state: present
+    regexp: "^TAPWAY_RAM_LIMIT="
+    line: "TAPWAY_RAM_LIMIT={{ ram.stdout }}"
+
+- name: Get CPU stat
+  changed_when: false
+  failed_when: cpu.rc != 0
+  register: cpu
+  ansible.builtin.shell: |
+    set -o pipefail
+    total_cpu=$(lscpu | grep 'CPU(s):' |  awk '{print $2}')
+    cpu_limit=$(echo "scale=2; ($total_cpu * {{ cpu_limit_pct }} * 0.01) / 1" | bc)
+    echo $cpu_limit
+  args:
+    executable: /bin/bash
+
+- name: Set TAPWAY_CPU_LIMIT environment variable
+  become: true
+  notify:
+    - Reload /etc/environment
+  ansible.builtin.lineinfile:
+    dest: "/etc/environment"
+    state: present
+    regexp: "^TAPWAY_CPU_LIMIT="
+    line: "TAPWAY_CPU_LIMIT={{ cpu.stdout }}"
+
 - name: Check nvidia-smi existence
   changed_when: false
   failed_when: false
@@ -236,6 +281,8 @@
     nvidia_distribution_name: "{{ os_release_cmd.stdout }}"
     nvidia_driver: "{{ nvidia_smi_fact.stdout }}"
     tapway_gpu_var: "{{ tapway_gpu_arch.stdout }}"
+    tapway_ram_limit: "{{ ram.stdout }}"
+    tapway_cpu_limit: "{{ cpu.stdout }}"
     docker_version: "{{ docker_fact.stdout }}"
     docker_compose_version_var: "{{ docker_compose_fact.stdout }}"
     nvidia_docker: "{{ nvidia_docker_fact.stdout }}"
@@ -301,6 +348,8 @@
       - "ARCH={{ cpu_arch.stdout }}"
       - "TAPWAY_ARCH={{ deb_arch }}"
       - "TAPWAY_GPU_ARCH={{ tapway_gpu_var }}"
+      - "TAPWAY_RAM_LIMIT={{ tapway_ram_limit }}"
+      - "TAPWAY_CPU_LIMIT={{ tapway_cpu_limit }}"
       - "Nvidia driver installed: {{ nvidia_driver }}"
       - "Docker installed: {{ docker_version }}"
       - "Docker compose installed: {{ docker_compose_version_var }}"
