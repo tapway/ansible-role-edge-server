@@ -9,9 +9,9 @@ gg_architecture:
 
 # Edge Server environment variables
 # TODO replace image name after migration to the tapway docker
-manager_image: cachuperia/edge-server-manager
+manager_image: gotapway/edge-server-manager
 # edge_server_manager_image: gotapway/edge-server-manager
-manager_tag: latest
+manager_tag: 1.6.3
 manager_logging_level: INFO
 manager_mqtt_port: 8883
 
@@ -45,6 +45,9 @@ nvidia_docker_repo_gpg_url: "{{ nvidia_docker_repo_base_url }}/gpgkey"
 greengrass_group: ggc_group
 greengrass_user: ggc_user
 greengrass_version: "1.11.6"
+
+cpu_limit_pct: 90
+ram_limit_pct: 90
 
 # Monitoring defaults
 netdata_version: "1.44.1"

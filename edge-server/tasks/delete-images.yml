@@ -37,16 +37,21 @@
 
       path="/images"
       config_file="/config/middleware_config.json"
+      default_days=7
+      default_size=20
 
       if [ -f "$config_file" ]; then
         # Check if the key exists using jq
         if jq -e ".data_retention" "$config_file" > /dev/null; then
-          days=`jq '.data_retention | .day_limit' $config_file`
+          days=$(jq -r '.data_retention.day_limit // empty' "$config_file")
+          if [ -z "$days" ]; then
+            days=$default_days
+          fi
         else
-          days=7
+          days=$default_days
         fi
       else
-        days=7
+        days=$default_days
       fi
 
       find $path -type f -mtime +$days -delete
@@ -54,12 +59,15 @@
       if [ -f "$config_file" ]; then
         # Check if the key exists using jq
         if jq -e ".data_retention" "$config_file" > /dev/null; then
-            size=`jq '.data_retention | .size_limit' $config_file`
+            size=$(jq -r '.data_retention.size_limit // empty' "$config_file")
+            if [ -z "$size" ]; then
+              size=$default_size
+            fi
         else
-            size=20
+            size=$default_size
         fi
       else
-          size=20
+          size=$default_size
       fi
 
       # Convert GB to bytes
@@ -74,8 +82,8 @@
           # Delete oldest files until the directory size is below the threshold
           while [ "$directory_size" -gt "$threshold_size" ]; do
               # Find the oldest file in the directory and delete it
-              oldest_file=$(ls -1rt "$path" | head -n 1)
-              rm -rf "$path/$oldest_file"
+              oldest_file=$(find "$path" -type f -printf '%T+ %p\n' | sort | head -n 1 | awk '{ print $2 }')
+              rm -rf "$oldest_file"
 
               # Recalculate the directory size
               directory_size=$(du -sb "$path" | awk '{print $1}')
