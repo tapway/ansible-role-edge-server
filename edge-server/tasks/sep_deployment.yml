@@ -1,0 +1,58 @@
+- name: Create ssh directory if it does not exist
+  become: true
+  ansible.builtin.file:
+    path: "/greengrass/ssh"
+    state: directory
+    owner: "{{ greengrass_user }}"
+    group: "{{ greengrass_group }}"
+    mode: '0700'
+
+- name: Get ssh info for middleware
+  when: item == "middleware"
+  ansible.builtin.set_fact:
+    middleware_host: "{{ hostvars[item]['ansible_host'] }}"
+    middleware_port: "{{ hostvars[item]['ansible_port'] | default('22') }}"
+    middleware_user: "{{ hostvars[item]['ansible_user'] }}"
+    middleware_ssh_private_key_file: "{{ hostvars[item]['ansible_ssh_private_key_file'] | default('None') }}"
+    middleware_password: "{{ hostvars[item]['ansible_password'] | default('None') }}"
+  loop: "{{ groups['sep_deploy'] }}"
+  register: middleware_ssh
+
+- name: Copy middleware ssh key if used
+  become: true
+  when: middleware_ssh_private_key_file != 'None'
+  ansible.builtin.copy:
+    src: "{{ middleware_ssh_private_key_file }}"
+    dest: "/greengrass/ssh/middlewarekey"
+    owner: "{{ greengrass_user }}"
+    group: "{{ greengrass_group }}"
+    mode: '0400'
+
+- name: Get ssh info for viewer
+  when: item == "viewer"
+  ansible.builtin.set_fact:
+    viewer_host: "{{ hostvars[item]['ansible_host'] }}"
+    viewer_port: "{{ hostvars[item]['ansible_port'] | default('22') }}"
+    viewer_user: "{{ hostvars[item]['ansible_user'] }}"
+    viewer_ssh_private_key_file: "{{ hostvars[item]['ansible_ssh_private_key_file'] | default('None') }}"
+    viewer_password: "{{ hostvars[item]['ansible_password'] | default('None') }}"
+  loop: "{{ groups['sep_deploy'] }}"
+
+- name: Copy viewer ssh key if used
+  become: true
+  when: viewer_ssh_private_key_file != 'None'
+  ansible.builtin.copy:
+    src: "{{ viewer_ssh_private_key_file }}"
+    dest: "/greengrass/ssh/viewerkey"
+    owner: "{{ greengrass_user }}"
+    group: "{{ greengrass_group }}"
+    mode: '0400'
+
+- name: Create ssh config
+  become: true
+  ansible.builtin.template:
+    src: templates/ssh_config
+    dest: "/greengrass/ssh/samurai_ssh_config"
+    owner: "{{ greengrass_user }}"
+    group: "{{ greengrass_group }}"
+    mode: '0644'

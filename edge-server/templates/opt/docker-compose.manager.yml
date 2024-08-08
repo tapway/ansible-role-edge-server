@@ -2,6 +2,7 @@
 services:
   manager:
     image: "{{ manager_image }}:{{ manager_tag }}"
+    container_name: edge-server
     pull_policy: always
     privileged: true  # https://www.educba.com/docker-privileged/
     env_file:

@@ -66,3 +66,21 @@
   failed_when: monitoring_stack.rc != 0
   register: monitoring_stack
   ansible.builtin.command: "docker compose -p monitoring -f {{ ansible_env.HOME }}/opt/stacks/netdata/docker-compose.yml up -d --force-recreate"
+
+- name: Enable NFS Service
+  become: true
+  ansible.builtin.systemd_service:
+    name: nfs-kernel-server
+    enabled: true
+
+- name: Start NFS Service
+  become: true
+  ansible.builtin.systemd_service:
+    name: nfs-kernel-server
+    state: started
+
+- name: Restart NFS Service
+  become: true
+  ansible.builtin.systemd_service:
+    name: nfs-server
+    state: restarted

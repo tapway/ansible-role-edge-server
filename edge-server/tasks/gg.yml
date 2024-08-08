@@ -3,6 +3,7 @@
   ansible.builtin.file:
     path: /greengrass
     state: directory
+    mode: '0755'
 
 - name: Create public directories if it does not exist
   become: true
@@ -85,6 +86,7 @@
     - python-dotenv
     - requests
     - retry
+    - fabric
   ansible.builtin.command: "python3.7 -m pip install {{ item }}"
 
 - name: Download greengrass-core

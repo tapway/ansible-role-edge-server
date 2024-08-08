@@ -13,6 +13,26 @@
     name: "{{ item }}"
     update_cache: true
 
+- name: Ensure the AWS CLI installer directory exists
+  become: true
+  ansible.builtin.file:
+    path: "/opt/awscli"
+    state: directory
+    mode: "0755"
+
+- name: Download and unzip AWS CLI Installer
+  become: true
+  register: awscli
+  ansible.builtin.unarchive:
+    src: "https://awscli.amazonaws.com/awscli-exe-linux-{{ arch }}-{{ awscli_version }}.zip"
+    dest: "/opt/awscli"
+    remote_src: true
+
+- name: Install aws cli
+  when: awscli is changed
+  become: true
+  ansible.builtin.shell: "/opt/awscli/aws/install"
+
 - name: Check if reboot is required
   changed_when: reboot_required.stat.exists
   notify: Reboot
@@ -23,3 +43,8 @@
 
 - name: Flush handlers
   ansible.builtin.meta: flush_handlers
+
+- name: Debug
+  ansible.builtin.debug:
+    msg: "{{ awscli.changed }}"
+

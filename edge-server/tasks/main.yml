@@ -18,21 +18,25 @@
 - name: Install apt packages
   tags:
     - apt
+    - sep_deploy
   ansible.builtin.include_tasks:
     file: apt.yml
     apply:
       tags:
         - apt
+        - sep_deploy
 
 - name: Update installed apt packages
   when: deb_arch == "amd64"  # FIXME Jetson can't `apt upgrade` (break Docker filesystem as result)
   tags:
     - apt
+    - sep_deploy
   ansible.builtin.include_tasks:
     file: apt-upgrade.yml
     apply:
       tags:
         - apt
+        - sep_deploy
 
 - name: Install Nvidia GPU drivers and tools
   tags:
@@ -80,22 +84,26 @@
 - name: Setup Docker
   tags:
     - docker
+    - sep_deploy
   ansible.builtin.include_tasks:
     file: docker.yml
     apply:
       tags:
         - docker
+        - sep_deploy
 
 - name: Setup Docker Compose
   when:
     - docker_compose_version_var != docker_compose_version
   tags:
     - docker
+    - sep_deploy
   ansible.builtin.include_tasks:
     file: docker-compose.yml
     apply:
       tags:
         - docker
+        - sep_deploy
 
 - name: Setup AWS Greengrass
   tags:
@@ -128,22 +136,27 @@
   tags:
     - portainer
     - dev
+    - sep_deploy
   ansible.builtin.include_tasks:
     file: portainer.yml
     apply:
       tags:
         - portainer
+        - dev
+        - sep_deploy
 
-- name: Setup monitoring
+- name: Setup Monitoring
   tags:
     - monitoring
+    - sep_deploy
   ansible.builtin.include_tasks:
     file: monitoring.yml
     apply:
       tags:
         - monitoring
+        - sep_deploy
 
-- name: Cronjob to delete images
+- name: Cronjob to Delete images
   tags:
     - delete_images
   ansible.builtin.include_tasks:
@@ -151,3 +164,23 @@
     apply:
       tags:
         - delete_images
+
+- name: Install and Setup NFS
+  when: hosts_info is defined and hosts_info != ""
+  tags:
+    - nfs
+  ansible.builtin.include_tasks:
+    file: nfs.yml
+    apply:
+      tags:
+        - nfs
+
+- name: Setup for Separate Deployment
+  when: hosts_info is defined and ansible_default_ipv4.address == inference_ip
+  tags:
+    - deploy
+  ansible.builtin.include_tasks:
+    file: sep_deployment.yml
+    apply:
+      tags:
+        - deploy

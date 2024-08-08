@@ -141,7 +141,7 @@
   register: ram
   ansible.builtin.shell: |
     set -o pipefail
-    total_ram_kb=$(free | grep 'Mem:' | awk '{print $2}')
+    total_ram_kb=$(free | grep '^Mem:' | awk '{print $2}')
     ram_limit_kb=$(echo "$total_ram_kb * {{ ram_limit_pct }} * 0.01" | bc)
     ram_limit_mb=$(echo "scale=0; ($ram_limit_kb / 1024) / 1" | bc)
     echo $ram_limit_mb
@@ -164,7 +164,7 @@
   register: cpu
   ansible.builtin.shell: |
     set -o pipefail
-    total_cpu=$(lscpu | grep 'CPU(s):' |  awk '{print $2}')
+    total_cpu=$(lscpu | grep '^CPU(s):' |  awk '{print $2}')
     cpu_limit=$(echo "scale=2; ($total_cpu * {{ cpu_limit_pct }} * 0.01) / 1" | bc)
     echo $cpu_limit
   args:
@@ -262,7 +262,7 @@
   register: jtop_cmd
   ansible.builtin.command: jtop -v
 
-- name: Set jtop fact
+- name: Get jtop fact
   changed_when: false
   failed_when: nvidia_docker_fact.rc != 0
   register: jtop_fact
@@ -273,8 +273,16 @@
   args:
     executable: /usr/bin/python3
 
+- name: Set inference ip
+  ansible.builtin.set_fact:
+    inference_ip: "{{ item.ip }}"
+  when: hosts_info is defined and item.hostname == 'inference-server'
+  loop: "{{ hosts_info }}"
+
+
 - name: Set facts
   ansible.builtin.set_fact:
+    arch: "{{ cpu_arch.stdout }}"
     deb_arch: "{{ deb_architecture[ansible_architecture] }}"
     gg_arch: "{{ gg_architecture[ansible_architecture] }}"
     host_name: "{{ hostname_cmd.stdout }}"
@@ -345,7 +353,7 @@
       - "OS `{{ ansible_distribution }} {{ ansible_distribution_version }}` `{{ ansible_distribution_release }}`"
       - "Nvidia distribution name `{{ nvidia_distribution_name }}`"
       - "Edge Server host name `{{ host_name }}`"
-      - "ARCH={{ cpu_arch.stdout }}"
+      - "ARCH={{ arch }}"
       - "TAPWAY_ARCH={{ deb_arch }}"
       - "TAPWAY_GPU_ARCH={{ tapway_gpu_var }}"
       - "TAPWAY_RAM_LIMIT={{ tapway_ram_limit }}"

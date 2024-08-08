@@ -1,0 +1,17 @@
+Host middleware
+    HostName {{ middleware_host }}
+    Port {{ middleware_port }}
+    User {{ middleware_user }}
+{% if middleware_ssh_private_key_file != 'None' %}
+    IdentityFile /greengrass/ssh/middlewarekey
+{% endif %}
+    StrictHostKeyChecking no
+
+Host viewer
+    HostName {{ viewer_host }}
+    Port {{ viewer_port }}
+    User {{ viewer_user }}
+{% if viewer_ssh_private_key_file != 'None' %}
+    IdentityFile /greengrass/ssh/viewerkey
+{% endif %}
+    StrictHostKeyChecking no

@@ -1,0 +1,100 @@
+- name: Set inference ip
+  ansible.builtin.set_fact:
+    inference_ip: "{{ item.ip }}"
+  loop: "{{ hosts_info }}"
+  when: item.hostname == 'inference-server'
+
+- name: Set middleware ip
+  ansible.builtin.set_fact:
+    middleware_ip: "{{ item.ip }}"
+  loop: "{{ hosts_info }}"
+  when: item.hostname == 'middleware-server'
+
+- name: Set viewer ip
+  ansible.builtin.set_fact:
+    viewer_ip: "{{ item.ip }}"
+  loop: "{{ hosts_info }}"
+  when: item.hostname == 'viewer-server'
+
+- name: Install NFS Server
+  become: true
+  when: ansible_default_ipv4.address == inference_ip
+  ansible.builtin.apt:
+    name: nfs-kernel-server
+    cache_valid_time: "{{ cache_valid_time }}"
+    update_cache: true
+  notify:
+    - Enable NFS Service
+    - Start NFS Service
+
+- name: Install NFS Client
+  become: true
+  when: ansible_default_ipv4.address != inference_ip
+  ansible.builtin.apt:
+    name: nfs-common
+    cache_valid_time: "{{ cache_valid_time }}"
+    update_cache: true
+
+- name: Add or update entries to /etc/hosts
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '.*\s{{ item.hostname }}$'
+    line: "{{ item.ip }} {{ item.hostname }}"
+    state: present
+  loop: "{{ hosts_info }}"
+
+- name: Create share directories if they do not exist
+  become: true
+  # when: ansible_default_ipv4.address == inference_ip
+  with_items: "{{ share_dirs }}"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: nobody
+    group: nogroup
+    mode: '0777'
+
+# - name: Create mount directories if they do not exist
+#   become: true
+#   when: ansible_default_ipv4.address != inference_ip
+#   with_items: "{{ share_dirs }}"
+#   ansible.builtin.file:
+#     path: "{{ item }}"
+#     state: directory
+
+- name: Create NFS share entries for Middleware server
+  become: true
+  when: ansible_default_ipv4.address == inference_ip
+  ansible.builtin.lineinfile:
+    path: /etc/exports
+    line: "{{ item }} {{ middleware_ip }}(rw,sync,no_subtree_check)"
+  loop: "{{ share_dirs }}"
+  notify:
+    - Restart NFS Service
+
+- name: Create NFS share entries for Viewer server
+  become: true
+  when: ansible_default_ipv4.address == inference_ip
+  ansible.builtin.lineinfile:
+    path: /etc/exports
+    line: "{{ item }} {{ viewer_ip }}(rw,sync,no_subtree_check)"
+  loop: "{{ share_dirs }}"
+  notify:
+    - Restart NFS Service
+
+- name: Flush handlers
+  become: true
+  when: ansible_default_ipv4.address == inference_ip
+  ansible.builtin.meta: flush_handlers
+
+- name: Mount NFS directories
+  become: true
+  when: ansible_default_ipv4.address != inference_ip
+  ansible.posix.mount:
+    src: "{{ inference_ip }}:{{ item }}"
+    path: "{{ item }}"
+    opts: default
+    state: mounted
+    fstype: nfs
+  loop: "{{ share_dirs }}"
