@@ -197,6 +197,14 @@
   args:
     executable: /usr/bin/python3
 
+- name: Set nvidia-smi binary fact
+  when:
+    - tapway_gpu_arch.stdout == "gpu"
+    - nvidia_smi_fact.stdout == "yes"
+  changed_when: false
+  register: nvidia_smi
+  ansible.builtin.command: which nvidia-smi
+
 - name: Check docker existence  # noqa command-instead-of-shell
   changed_when: false
   failed_when: false
@@ -260,7 +268,7 @@
   register: jtop_fact
   ansible.builtin.shell:
     cmd: |
-      fact = "no" if {{ jtop_cmd.rc }} != 0 else """{{ jtop_cmd.stdout }}"""
+      fact = "no" if {{ jtop_cmd.rc }} != 0 else "yes"
       print(fact)
   args:
     executable: /usr/bin/python3
@@ -278,7 +286,54 @@
     docker_version: "{{ docker_fact.stdout }}"
     docker_compose_version_var: "{{ docker_compose_fact.stdout }}"
     nvidia_docker: "{{ nvidia_docker_fact.stdout }}"
-    jtop_version: "{{ jtop_fact.stdout }}"
+    jtop: "{{ jtop_fact.stdout }}"
+
+- name: Set docker image for netdata
+  ansible.builtin.set_fact:
+    netdata_image: |
+      {% if tapway_gpu_var == "jetpack5.1" %}
+      gotapway/netdata-jetson
+      {% else %}
+      netdata/netdata:v{{ netdata_version }}
+      {% endif %}
+
+- name: Set user for netdata
+  ansible.builtin.set_fact:
+    netdata_user: |
+      {% if tapway_gpu_var == "jetpack5.1" %}
+      root
+      {% else %}
+      netdata
+      {% endif %}
+
+- name: Set deploy config for GPU
+  ansible.builtin.set_fact:
+    deploy: |
+      {% if tapway_gpu_var == "gpu" %}
+      deploy:
+        resources:
+          reservations:
+            devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+      {% endif %}
+
+- name: Set Volume config for Jetson
+  ansible.builtin.set_fact:
+    jtop_volume: |
+      {% if tapway_gpu_var == "jetpack5.1" %}
+      - {{ ansible_env.HOME }}/opt/stacks/netdata/netdata/python.d/jtop.chart.py:/usr/libexec/netdata/python.d/jtop.chart.py
+      - /run/jtop.sock:/run/jtop.sock
+      {% endif %}
+
+- name: Set environment Variable for Jetson
+  ansible.builtin.set_fact:
+    jtop_env_var: |
+      {% if tapway_gpu_var == "jetpack5.1" %}
+      environment:
+        - DOCKER_USR=root
+      {% endif %}
 
 - name: Print Edge Server facts
   tags:
@@ -299,4 +354,4 @@
       - "Docker installed: {{ docker_version }}"
       - "Docker compose installed: {{ docker_compose_version_var }}"
       - "Nvidia Docker installed: {{ nvidia_docker }}"
-      - "Jtop installed: {{ jtop_version }}"
+      - "Jtop installed: {{ jtop }}"
