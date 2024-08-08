@@ -6,6 +6,14 @@
     dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/"
     src: files/opt/stacks/netdata/
 
+- name: Create configuration file for go.d.conf
+  become: true
+  notify:
+    - Start monitoring stack
+  ansible.builtin.template:
+    dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/go.d.conf"
+    src: templates/opt/stacks/netdata/netdata/go.d.conf
+
 - name: Create docker-compose file
   become: true
   notify:
@@ -22,6 +30,28 @@
   loop:
     - "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/go.d"
     - "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/health.d"
+
+- name: Copy configuration file for dGPU alerts
+  become: true
+  notify:
+    - Start monitoring stack
+  when:
+    - tapway_gpu_var == "gpu"
+    - nvidia_driver
+  ansible.builtin.copy:
+    dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/health.d/"
+    src: files/opt/gpu.conf
+
+- name: Create nvidia-smi configuration
+  become: true
+  notify:
+    - Start monitoring stack
+  when:
+    - tapway_gpu_var == "gpu"
+    - nvidia_driver
+  ansible.builtin.template:
+    dest: "{{ ansible_env.HOME }}/opt/stacks/netdata/netdata/go.d/nvidia_smi.conf"
+    src: templates/opt/stacks/netdata/netdata/go.d/nvidia_smi.conf
 
 - name: Create PostgreSQL configuration
   become: true
