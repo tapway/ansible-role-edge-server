@@ -273,39 +273,33 @@
   args:
     executable: /usr/bin/python3
 
+- name: Get jtop version
+  when: jtop_cmd.rc == 0
+  changed_when: false
+  failed_when: false
+  register: jtop_server_version
+  ansible.builtin.shell: jtop -v | awk '{ print $2 }'
+
 - name: Set inference ip
   ansible.builtin.set_fact:
     inference_ip: "{{ item.ip }}"
   when: hosts_info is defined and item.hostname == 'inference-server'
   loop: "{{ hosts_info }}"
 
-
-- name: Set facts
+- name: Set GPU variable for monitoring
   ansible.builtin.set_fact:
-    arch: "{{ cpu_arch.stdout }}"
-    deb_arch: "{{ deb_architecture[ansible_architecture] }}"
-    gg_arch: "{{ gg_architecture[ansible_architecture] }}"
-    host_name: "{{ hostname_cmd.stdout }}"
-    nvidia_distribution_name: "{{ os_release_cmd.stdout }}"
-    nvidia_driver: "{{ nvidia_smi_fact.stdout }}"
     tapway_gpu_var: "{{ tapway_gpu_arch.stdout }}"
-    tapway_ram_limit: "{{ ram.stdout }}"
-    tapway_cpu_limit: "{{ cpu.stdout }}"
-    docker_version: "{{ docker_fact.stdout }}"
-    docker_compose_version_var: "{{ docker_compose_fact.stdout }}"
-    nvidia_docker: "{{ nvidia_docker_fact.stdout }}"
-    jtop: "{{ jtop_fact.stdout }}"
 
 - name: Set docker image for netdata
   ansible.builtin.set_fact:
     netdata_image: |
       {% if tapway_gpu_var == "jetpack5.1" %}
-      gotapway/netdata-jetson
+      gotapway/netdata-jetson:v{{ netdata_version }}
       {% else %}
       netdata/netdata:v{{ netdata_version }}
       {% endif %}
 
-- name: Set user for netdata
+- name: Set user for netdata  # TODO include other jetpack versions
   ansible.builtin.set_fact:
     netdata_user: |
       {% if tapway_gpu_var == "jetpack5.1" %}
@@ -343,6 +337,22 @@
         - DOCKER_USR=root
       {% endif %}
 
+- name: Set facts
+  ansible.builtin.set_fact:
+    arch: "{{ cpu_arch.stdout }}"
+    deb_arch: "{{ deb_architecture[ansible_architecture] }}"
+    gg_arch: "{{ gg_architecture[ansible_architecture] }}"
+    host_name: "{{ hostname_cmd.stdout }}"
+    nvidia_distribution_name: "{{ os_release_cmd.stdout }}"
+    nvidia_driver: "{{ nvidia_smi_fact.stdout }}"
+    tapway_ram_limit: "{{ ram.stdout }}"
+    tapway_cpu_limit: "{{ cpu.stdout }}"
+    docker_version: "{{ docker_fact.stdout }}"
+    docker_compose_version_var: "{{ docker_compose_fact.stdout }}"
+    nvidia_docker: "{{ nvidia_docker_fact.stdout }}"
+    jtop: "{{ jtop_fact.stdout }}"
+    jtop_server_version: "{{ jtop_server_version.stdout if jtop_cmd.rc == 0 else none }}"
+
 - name: Print Edge Server facts
   tags:
     - always
@@ -362,4 +372,4 @@
       - "Docker installed: {{ docker_version }}"
       - "Docker compose installed: {{ docker_compose_version_var }}"
       - "Nvidia Docker installed: {{ nvidia_docker }}"
-      - "Jtop installed: {{ jtop }}"
+      - "Jtop installed: {{ jtop }}, Version: {{ jtop_server_version }}"

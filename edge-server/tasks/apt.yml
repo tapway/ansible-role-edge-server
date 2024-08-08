@@ -47,4 +47,3 @@
 - name: Debug
   ansible.builtin.debug:
     msg: "{{ awscli.changed }}"
-

@@ -50,7 +50,7 @@
       tags:
         - apt
 
-- name: Install Jetson drivers and tools  # TODO install same version as netdata docker image
+- name: Install Jetson drivers and tools
   tags:
     - jetson
   when:
@@ -99,7 +99,7 @@
     - docker
     - sep_deploy
   ansible.builtin.include_tasks:
-    file: docker-compose.yml
+    file: install-compose.yml
     apply:
       tags:
         - docker
