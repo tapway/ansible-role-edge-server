@@ -34,6 +34,7 @@ apt_packages:
   - unzip
 
 awscli_version: "2.17.13"
+frp_version: "0.59.0"
 
 # Docker compose version (>v2.24.5 will have extends cannot be used with depends_on error)
 docker_compose_version: "v2.24.5"

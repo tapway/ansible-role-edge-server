@@ -28,6 +28,36 @@
     remote_src: true
   notify: Install AWS CLI
 
+- name: Create directory for FRP
+  become: true
+  ansible.builtin.file:
+    path: "/frpc-data"
+    state: directory
+    mode: "0775"
+
+- name: Download and extract FRP
+  become: true
+  ansible.builtin.unarchive:
+    src: "https://github.com/fatedier/frp/releases/download/v{{ frp_version }}/frp_{{ frp_version }}_linux_{{ deb_arch }}.tar.gz"
+    dest: "/opt"
+    remote_src: true
+
+- name: Copy frpc
+  become: true
+  ansible.builtin.copy:
+    src: "/opt/frp_{{ frp_version }}_linux_{{ deb_arch }}/frpc"
+    dest: "/usr/local/bin/frpc"
+    remote_src: true
+    mode: "0755"
+
+- name: Copy frp-client.service to /etc/systemd/system/
+  become: true
+  notify: Restart frp-client
+  ansible.builtin.copy:
+    src: files/etc/systemd/system/frp-client.service
+    dest: /etc/systemd/system/frp-client.service
+    mode: "0755"
+
 - name: Check if reboot is required
   changed_when: reboot_required.stat.exists
   notify: Reboot
