@@ -14,7 +14,7 @@ repos:
     rev: v1.4.0
     hooks:
       - id: detect-secrets
-        args: ['--baseline', '.secrets.baseline', '--exclude-lines', '/etc/passwd']
+        args: ['--baseline', '.secrets.baseline']
   - repo: https://github.com/ansible/ansible-lint.git
     rev: v6.20.0
     hooks:
