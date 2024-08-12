@@ -22,16 +22,11 @@
 
 - name: Download and unzip AWS CLI Installer
   become: true
-  register: awscli
   ansible.builtin.unarchive:
     src: "https://awscli.amazonaws.com/awscli-exe-linux-{{ arch }}-{{ awscli_version }}.zip"
     dest: "/opt/awscli"
     remote_src: true
-
-- name: Install aws cli
-  when: awscli is changed
-  become: true
-  ansible.builtin.shell: "/opt/awscli/aws/install"
+  notify: Install AWS CLI
 
 - name: Check if reboot is required
   changed_when: reboot_required.stat.exists
@@ -43,7 +38,3 @@
 
 - name: Flush handlers
   ansible.builtin.meta: flush_handlers
-
-- name: Debug
-  ansible.builtin.debug:
-    msg: "{{ awscli.changed }}"
