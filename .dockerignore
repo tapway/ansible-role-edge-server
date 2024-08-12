@@ -7,3 +7,4 @@ edge-server/tests/.vagrant
 edge-server/tests/inventory.yml
 edge-server/tests/Makefile
 edge-server/tests/Vagrantfile
+edge-server/tests/*.pem

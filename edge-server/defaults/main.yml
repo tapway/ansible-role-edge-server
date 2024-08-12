@@ -8,9 +8,7 @@ gg_architecture:
   "x86_64": "x86-64"
 
 # Edge Server environment variables
-# TODO replace image name after migration to the tapway docker
 manager_image: gotapway/edge-server-manager
-# edge_server_manager_image: gotapway/edge-server-manager
 manager_tag: 1.6.3
 manager_logging_level: INFO
 manager_mqtt_port: 8883

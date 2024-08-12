@@ -6,11 +6,13 @@ MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 
 ROOT := $(shell pwd)
+IMAGE := gotapway/ansible-role-edge-server
+VERSION := test-v2.0.1
 
 .DEFAULT_GOAL = help
 
 ##@ Bootstrap
-.PHONY: repo-init init
+.PHONY: repo-init builder-init init
 
 repo-init:  ## Install pre-commit in repo
 	pre-commit install -t pre-commit -t commit-msg
@@ -25,6 +27,22 @@ check:  ## Run pre-commit against all files
 
 test:  ## Run playbook
 	 ANSIBLE_CONFIG=./edge-server/tests/ansible.cfg ansible-playbook -i inventory.yml ./edge-server/tests/playbook.yml
+
+##@ Docker
+.PHONY: build
+
+builder-init:  ## Setup for amd and arm build
+	@docker run --privileged --rm tonistiigi/binfmt --install arm64, amd64
+	@if docker buildx inspect edge-server > /dev/null 2>&1; then \
+		echo "Builder instance 'edge-server' already exists. Using the existing one."; \
+		docker buildx use edge-server; \
+	else \
+		echo "Creating new Buildx builder instance 'edge-server'..."; \
+		docker buildx create --use --platform=linux/arm64 --name edge-server; \
+	fi
+
+build: builder-init  ## Build and push netdata jetson image
+	docker buildx build --platform arm64,amd64 --push -t ${IMAGE}:${VERSION} -f Dockerfile .
 
 ##@ Miscellaneous
 .PHONY: secrets-baseline-create secrets-baseline-audit secrets-update

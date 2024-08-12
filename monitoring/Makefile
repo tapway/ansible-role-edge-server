@@ -8,6 +8,14 @@ MAKEFLAGS += --no-builtin-rules
 IMAGE := gotapway/netdata-jetson
 NETDATA_VERSION := $(shell python3 extract_version.py)
 
+.DEFAULT_GOAL := help
+
+
+##@ Docker
+.PHONY: build builder-init update-netdata-image
+
+update-netdata-image:  ## Update netdata base image
+	sed -i 's/:.*/:v${NETDATA_VERSION}/' Dockerfile.netdata
 
 builder-init:  ## Setup for arm build
 	@docker run --privileged --rm tonistiigi/binfmt --install arm64
@@ -19,15 +27,11 @@ builder-init:  ## Setup for arm build
 		docker buildx create --use --platform=linux/arm64 --name netdata-jetson; \
 	fi
 
-update-netdata-image:  ## Update netdata base image
-	sed -i 's/:.*/:v${NETDATA_VERSION}/' Dockerfile.netdata
-
-init: builder-init update-netdata-image  ## all init steps at once
-
-build:  ## Build and push netdata jetson image
+build: update-netdata-image builder-init  ## Build and push netdata jetson image
 	docker buildx build --platform arm64 --push -t ${IMAGE}:v${NETDATA_VERSION} -f Dockerfile.netdata .
 
-.DEFAULT_GOAL := help
+##@ Helpers
+.PHONY: help
 
 help:  ## Display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)

@@ -87,6 +87,7 @@
     - requests
     - retry
     - fabric
+    - cffi
   ansible.builtin.command: "python3.7 -m pip install {{ item }}"
 
 - name: Download greengrass-core

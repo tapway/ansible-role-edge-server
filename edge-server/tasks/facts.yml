@@ -109,7 +109,7 @@
               else:
                   raise ValueError(version)
           else:
-             raise ValueError(version)
+              raise ValueError(version)
           return arch
 
       display_info = """{{ display_info.stdout }}"""
