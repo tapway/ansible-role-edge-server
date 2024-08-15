@@ -243,7 +243,7 @@
   changed_when: false
   failed_when: false
   register: nvidia_docker_cmd
-  ansible.builtin.command: nvidia-docker
+  ansible.builtin.command: nvidia-ctk
 
 - name: Set nvidia-docker fact
   changed_when: false
@@ -264,7 +264,7 @@
 
 - name: Get jtop fact
   changed_when: false
-  failed_when: nvidia_docker_fact.rc != 0
+  failed_when: jtop_fact.rc != 0
   register: jtop_fact
   ansible.builtin.shell:
     cmd: |

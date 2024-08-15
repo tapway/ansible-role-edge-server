@@ -4,19 +4,19 @@
     repo: "ppa:graphics-drivers/ppa"
     state: present
 
-- name: Get driver package version
-  become: true
-  changed_when: false
-  failed_when: false
-  register: nvidia_driver_package_version
-  ansible.builtin.shell: |
-    ubuntu-drivers devices 2>&1 | grep 'recommended' | grep -o '[[:digit:]]*'
+# - name: Get driver package version
+#   become: true
+#   changed_when: false
+#   failed_when: false
+#   register: nvidia_driver_package_version
+#   ansible.builtin.shell: |
+#     ubuntu-drivers devices 2>&1 | grep 'recommended' | grep -o '[[:digit:]]*'
 
 - name: Install driver
   become: true
   ansible.builtin.apt:
-    name: "nvidia-driver-{{ nvidia_driver_package_version.stdout }}"
-    cache_valid_time: "{{ cache_valid_time }}"
+    name: "nvidia-driver-{{ nvidia_driver_version }}"
+    update_cache: true
 
 - name: Check if reboot is required
   changed_when: reboot_required.stat.exists

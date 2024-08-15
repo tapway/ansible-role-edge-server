@@ -55,8 +55,10 @@ class Service(SimpleService):
     def fetch_jtop_metrics(self):
         try:
             with jtop() as jetson:
-                for metric, name in self.gpu_metrics.items():
-                    self.gpu_data[metric] = jetson.stats.get(name)
+                # jetson.ok() will provide the proper update frequency
+                while jetson.ok():
+                    for metric, name in self.gpu_metrics.items():
+                        self.gpu_data[metric] = jetson.stats.get(name)
         except Exception as e:
             self.error(f"Error fetching jtop metrics: {e}")
 
