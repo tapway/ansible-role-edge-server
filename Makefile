@@ -7,12 +7,12 @@ MAKEFLAGS += --no-builtin-rules
 
 ROOT := $(shell pwd)
 IMAGE := gotapway/ansible-role-edge-server
-VERSION := test-v2.0.1
+VERSION := test
 
 .DEFAULT_GOAL = help
 
 ##@ Bootstrap
-.PHONY: repo-init builder-init init
+.PHONY: repo-init init
 
 repo-init:  ## Install pre-commit in repo
 	pre-commit install -t pre-commit -t commit-msg
@@ -29,7 +29,7 @@ test:  ## Run playbook
 	 ANSIBLE_CONFIG=./edge-server/tests/ansible.cfg ansible-playbook -i inventory.yml ./edge-server/tests/playbook.yml
 
 ##@ Docker
-.PHONY: build
+.PHONY: builder-init build
 
 builder-init:  ## Setup for amd and arm build
 	@docker run --privileged --rm tonistiigi/binfmt --install arm64, amd64

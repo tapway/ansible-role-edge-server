@@ -22,6 +22,7 @@
   ansible.builtin.file:
     path: /usr/local/lib/docker/cli-plugins
     state: directory
+    mode: "0755"
 
 - name: Install docker compose
   become: true

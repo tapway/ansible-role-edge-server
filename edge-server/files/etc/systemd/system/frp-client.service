@@ -1,0 +1,15 @@
+[Unit]
+Description=FRP Client Service
+After=network.target
+After=network-online.target
+
+[Service]
+Type=idle
+Restart=on-failure
+User=root
+WorkingDirectory=/frpc-data
+ExecStartPre= /bin/bash -c 'until ping -c1 google.com; do sleep 1; done;'
+ExecStart=/bin/bash -c '/usr/local/bin/frpc -c frpc.toml'
+
+[Install]
+WantedBy=multi-user.target
