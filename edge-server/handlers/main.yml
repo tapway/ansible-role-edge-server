@@ -23,6 +23,10 @@
     state: restarted
     enabled: true
 
+- name: Install AWS CLI
+  become: true
+  ansible.builtin.command: "/opt/awscli/aws/install"
+
 - name: Restart frp-client
   become: true
   ansible.builtin.service:

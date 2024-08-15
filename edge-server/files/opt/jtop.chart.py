@@ -40,6 +40,11 @@ class Service(SimpleService):
         self.definitions = CHARTS
         #values to show at graphs
         self.values=dict()
+        self.gpu_data = dict()
+        self.gpu_metrics = {
+            "gpu_utilization": "GPU",
+            "gpu_temp": "Temp GPU",
+        }
 
     def check(self):
         if not JTOP:
@@ -47,28 +52,21 @@ class Service(SimpleService):
             return False
         return True
 
-    gpu_data = dict()
-    gpu_metrics = {
-        "gpu_utilization": "GPU",
-        "gpu_temp": "Temp GPU",
-    }
-
     def fetch_jtop_metrics(self):
         try:
             with jtop() as jetson:
                 for metric, name in self.gpu_metrics.items():
                     self.gpu_data[metric] = jetson.stats.get(name)
         except Exception as e:
-            print(e)
+            self.error(f"Error fetching jtop metrics: {e}")
 
     def get_data(self):
         #The data dict is basically all the values to be represented
         # The entries are in the format: { "dimension": value}
         #And each "dimension" should belong to a chart.
-        data = dict()
-
         self.fetch_jtop_metrics()
-
-        data['gpu_utilization'] = self.gpu_data['gpu_utilization']
-        data['gpu_temp'] = self.gpu_data['gpu_temp']
+        data = {
+            'gpu_utilization': self.gpu_data.get('gpu_utilization', 0),
+            'gpu_temp': self.gpu_data.get('gpu_temp', 0)
+        }
         return data
