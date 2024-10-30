@@ -1,5 +1,6 @@
-FROM netdata/netdata:v1.46.3
+FROM netdata/netdata:v1.47
 
 RUN apt-get update && apt-get install -y python3-pip nano \
-    && pip install jetson-stats==4.2.7 --break-system-packages && \
+    && pip install jetson-stats==4.2.12 --break-system-packages && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*

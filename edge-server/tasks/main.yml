@@ -43,7 +43,7 @@
     - apt
   when:
     - tapway_gpu_var == "gpu"
-    - not nvidia_driver
+    - (not nvidia_driver) or (not nvidia_docker)
   ansible.builtin.include_tasks:
     file: gpu.yml
     apply:
@@ -55,7 +55,7 @@
     - jetson
   when:
     - deb_arch == "arm64"
-    - not jtop
+    - not jtop or jtop_server_version != jtop_version
   ansible.builtin.include_tasks:
     file: jetson.yml
     apply:
@@ -82,6 +82,8 @@
         - dev
 
 - name: Setup Docker
+  when:
+    - docker_version == "no"
   tags:
     - docker
     - sep_deploy
@@ -136,14 +138,12 @@
   tags:
     - portainer
     - dev
-    - sep_deploy
   ansible.builtin.include_tasks:
     file: portainer.yml
     apply:
       tags:
         - portainer
         - dev
-        - sep_deploy
 
 - name: Setup Monitoring
   tags:
@@ -169,11 +169,13 @@
   when: hosts_info is defined and hosts_info != ""
   tags:
     - nfs
+    - sep_deploy
   ansible.builtin.include_tasks:
     file: nfs.yml
     apply:
       tags:
         - nfs
+        - sep_deploy
 
 - name: Setup for Separate Deployment
   when: hosts_info is defined and ansible_default_ipv4.address == inference_ip

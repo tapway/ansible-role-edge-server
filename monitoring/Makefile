@@ -6,7 +6,8 @@ MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 
 IMAGE := gotapway/netdata-jetson
-NETDATA_VERSION := $(shell python3 extract_version.py)
+NETDATA_VERSION := $(shell python3 extract_version.py netdata_version)
+JTOP_VERSION := $(shell python3 extract_version.py jtop_version)
 
 .DEFAULT_GOAL := help
 
@@ -16,6 +17,7 @@ NETDATA_VERSION := $(shell python3 extract_version.py)
 
 update-netdata-image:  ## Update netdata base image
 	sed -i 's/:.*/:v${NETDATA_VERSION}/' Dockerfile.netdata
+	sed -i 's/jetson-stats==[^ ]*/jetson-stats==${JTOP_VERSION}/' Dockerfile.netdata
 
 builder-init:  ## Setup for arm build
 	@docker run --privileged --rm tonistiigi/binfmt --install arm64

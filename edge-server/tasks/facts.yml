@@ -101,10 +101,12 @@
                   arch = "jetpack5.0.2"
               elif major in ["2", "3", "4"] and minor == "1":
                   arch = "jetpack5.1"
+              elif major in ["5", "6"] and minor == "0":
+                  arch = "jetpack5.1"
               else:
                   raise ValueError(version)
           elif release == "36":
-              if major == "3" and minor == "0":
+              if major in ["2", "3", "4"] and minor == "0":
                   arch = "jetpack6.0"
               else:
                   raise ValueError(version)
@@ -278,13 +280,48 @@
   changed_when: false
   failed_when: false
   register: jtop_server_version
-  ansible.builtin.shell: jtop -v | awk '{ print $2 }'
+  ansible.builtin.shell: |
+    set -o pipefail
+    jtop -v | awk '{ print $2 }'
+  args:
+    executable: /bin/bash
 
 - name: Set inference ip
   ansible.builtin.set_fact:
     inference_ip: "{{ item.ip }}"
   when: hosts_info is defined and item.hostname == 'inference-server'
   loop: "{{ hosts_info }}"
+
+- name: Set default API URLs(standalone deployment) for viewer
+  ansible.builtin.set_fact:
+    log_host: localhost
+    api_host: localhost
+    model_compiler_host: localhost
+  when: hosts_info is not defined
+
+- name: Set API URLs (two or three servers separate deployment) for viewer
+  ansible.builtin.set_fact:
+    api_host: "{{ 'middleware-server' if hosts_info | length == 3 else 'localhost' }}"
+    model_compiler_host: "inference-server"
+  when: hosts_info is defined and hosts_info | length > 0
+
+- name: Create /config directory if it does not exist
+  become: true
+  ansible.builtin.file:
+    path: /config
+    state: directory
+    mode: "0777"
+
+- name: Create .env.viewer file
+  ansible.builtin.template:
+    dest: "/config/.env.viewer"
+    src: templates/opt/.env.viewer
+    backup: true
+    mode: "0664"
+  when:
+    - inventory_hostname == "viewer_server" or
+      (inventory_hostname == "inference_server" and hosts_info is not defined) or
+      (inventory_hostname == "middleware_server" and hosts_info | length == 2)
 
 - name: Set GPU variable for monitoring
   ansible.builtin.set_fact:
@@ -308,7 +345,7 @@
       netdata
       {% endif %}
 
-- name: Set deploy config for GPU
+- name: Set deploy config for Netdata dGPU
   ansible.builtin.set_fact:
     deploy: |
       {% if tapway_gpu_var == "gpu" %}
@@ -321,7 +358,7 @@
               capabilities: [gpu]
       {% endif %}
 
-- name: Set Volume config for Jetson
+- name: Set Volume config for Netdata Jetson
   ansible.builtin.set_fact:
     jtop_volume: |
       {% if tapway_gpu_var == "jetpack5.1" %}
@@ -329,7 +366,7 @@
       - /run/jtop.sock:/run/jtop.sock
       {% endif %}
 
-- name: Set environment Variable for Jetson
+- name: Set environment Variable for Netdata Jetson
   ansible.builtin.set_fact:
     jtop_env_var: |
       {% if tapway_gpu_var == "jetpack5.1" %}

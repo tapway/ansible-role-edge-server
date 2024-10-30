@@ -7,6 +7,8 @@ services:
     privileged: true  # https://www.educba.com/docker-privileged/
     env_file:
       - .env
+    secrets:
+      - frp_token
     healthcheck:
       test: curl -sS --fail http://127.0.0.1:5000 || exit 1
     network_mode: host
@@ -17,7 +19,12 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /greengrass:/greengrass
       - /config:/config
+      - /frpc-data:/frpc-data
       - /tmp:/tmp
       - /var/run/docker.sock:/var/run/docker.sock
       # greengrass service
       - /run:/run
+
+secrets:
+  frp_token:
+    file: frp-pass

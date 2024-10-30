@@ -68,11 +68,26 @@
 - name: Add Greengrass runtime
   become: true
   with_items:
-    - python3.7
-    - python3.7-distutils
+    - python3.8
+    - python3.8-distutils
   ansible.builtin.apt:
     name: "{{ item }}"
     cache_valid_time: "{{ cache_valid_time }}"
+
+- name: Get pip for python3.8
+  ansible.builtin.get_url:
+    url: https://bootstrap.pypa.io/get-pip.py
+    dest: /tmp/get-pip.py
+    mode: '0664'
+  register: get_pip
+
+- name: Install pip for python3.8  # noqa command-instead-of-shell no-handler
+  failed_when: install_pip.rc != 0
+  become: true
+  ansible.builtin.shell:
+    cmd: /usr/bin/python3.8 /tmp/get-pip.py
+  register: install_pip
+  when: get_pip is changed
 
 - name: Add Greengrass runtime dependencies
   become: true
@@ -87,7 +102,7 @@
     - retry
     - fabric
     - cffi
-  ansible.builtin.command: "python3.7 -m pip install {{ item }}"
+  ansible.builtin.command: "python3.8 -m pip install {{ item }}"
 
 - name: Download greengrass-core
   ansible.builtin.get_url:

@@ -41,7 +41,7 @@ builder-init:  ## Setup for amd and arm build
 		docker buildx create --use --platform=linux/arm64 --name edge-server; \
 	fi
 
-build: builder-init  ## Build and push netdata jetson image
+build: builder-init  ## Build and push ansible role edge server image
 	docker buildx build --platform arm64,amd64 --push -t ${IMAGE}:${VERSION} -f Dockerfile .
 
 ##@ Miscellaneous
