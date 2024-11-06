@@ -4,6 +4,7 @@
   ansible.builtin.template:
     dest: "{{ ansible_env.HOME }}/opt/docker-compose.manager.yml"
     src: templates/opt/docker-compose.manager.yml
+    mode: "0664"
 
 - name: Create .env file
   notify:
@@ -12,6 +13,14 @@
     dest: "{{ ansible_env.HOME }}/opt/.env"
     src: templates/opt/.env
     backup: true
+    mode: "0664"
+
+- name: Create token file
+  ansible.builtin.template:
+    dest: "{{ ansible_env.HOME }}/opt/frp-pass"
+    src: templates/opt/frp-pass
+    mode: "0664"
+  when: inventory_hostname == "inference_server"
 
 - name: Flush handlers
   ansible.builtin.meta: flush_handlers

@@ -1,22 +1,102 @@
 - name: Add drivers repository to the apt sources
+  when:
+    - not nvidia_driver
   become: true
   ansible.builtin.apt_repository:
     repo: "ppa:graphics-drivers/ppa"
     state: present
 
-# - name: Get driver package version
+- name: Get driver package version
+  when:
+    - not nvidia_driver
+  become: true
+  changed_when: false
+  failed_when: false
+  register: nvidia_driver_package_version
+  ansible.builtin.shell: |
+    set -o pipefail
+    ubuntu-drivers devices 2>&1 | grep 'recommended' | grep -o '[[:digit:]]*'
+  args:
+    executable: /bin/bash
+
+# - name: Install driver
 #   become: true
-#   changed_when: false
-#   failed_when: false
-#   register: nvidia_driver_package_version
-#   ansible.builtin.shell: |
-#     ubuntu-drivers devices 2>&1 | grep 'recommended' | grep -o '[[:digit:]]*'
+#   ansible.builtin.apt:
+#     name: "nvidia-driver-{{ nvidia_driver_version }}"
+#     update_cache: true
 
 - name: Install driver
+  when:
+    - not nvidia_driver
   become: true
   ansible.builtin.apt:
-    name: "nvidia-driver-{{ nvidia_driver_version }}"
+    name: "nvidia-driver-{{ nvidia_driver_package_version.stdout }}"
+    cache_valid_time: "{{ cache_valid_time }}"
+
+- name: Download NVIDIA GPG key
+  when:
+    - not nvidia_docker
+  become: true
+  ansible.builtin.get_url:
+    url: https://nvidia.github.io/libnvidia-container/gpgkey
+    dest: /tmp/nvidia-gpgkey
+    mode: '0644'
+
+- name: Convert NVIDIA GPG key to keyring format
+  when:
+    - not nvidia_docker
+  become: true
+  ansible.builtin.command:
+    cmd: gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg /tmp/nvidia-gpgkey
+  args:
+    creates: /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+- name: Remove temporary NVIDIA GPG key file
+  when:
+    - not nvidia_docker
+  become: true
+  ansible.builtin.file:
+    path: /tmp/nvidia-gpgkey
+    state: absent
+
+- name: Download NVIDIA container toolkit list file
+  when:
+    - not nvidia_docker
+  become: true
+  ansible.builtin.get_url:
+    url: "https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list"
+    dest: "/etc/apt/sources.list.d/nvidia-container-toolkit.list"
+    mode: "0644"
+
+- name: Update the NVIDIA container toolkit list with the GPG key
+  when:
+    - not nvidia_docker
+  become: true
+  ansible.builtin.replace:
+    path: /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    regexp: '^deb https://'
+    replace: 'deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://'
+    backup: true
+
+- name: Install NVIDIA container toolkit
+  when:
+    - not nvidia_docker
+  become: true
+  ansible.builtin.apt:
+    name: nvidia-container-toolkit
+    state: present
     update_cache: true
+
+- name: Configure docker daemon defaults
+  when:
+    - not nvidia_docker
+  become: true
+  notify:
+    - Restart docker daemon
+  ansible.builtin.copy:
+    src: "files/etc/docker/daemon.{{ deb_arch }}.json"
+    dest: /etc/docker/daemon.json
+    mode: "0644"
 
 - name: Check if reboot is required
   changed_when: reboot_required.stat.exists

@@ -54,66 +54,6 @@
     name: "{{ item }}"
     cache_valid_time: "{{ cache_valid_time }}"
 
-- name: Download NVIDIA GPG key
-  become: true
-  when:
-    - tapway_gpu_var != "cpu"
-    # - not nvidia_docker
-  ansible.builtin.get_url:
-    url: https://nvidia.github.io/libnvidia-container/gpgkey
-    dest: /tmp/nvidia-gpgkey
-    mode: '0644'
-
-- name: Convert NVIDIA GPG key to keyring format
-  become: true
-  when:
-    - tapway_gpu_var != "cpu"
-    # - not nvidia_docker
-  ansible.builtin.command:
-    cmd: gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg /tmp/nvidia-gpgkey
-  args:
-    creates: /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-
-- name: Remove temporary NVIDIA GPG key file
-  become: true
-  when:
-    - tapway_gpu_var != "cpu"
-    # - not nvidia_docker
-  ansible.builtin.file:
-    path: /tmp/nvidia-gpgkey
-    state: absent
-
-- name: Download NVIDIA container toolkit list file
-  become: true
-  when:
-    - tapway_gpu_var != "cpu"
-    # - not nvidia_docker
-  ansible.builtin.get_url:
-    url: "https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list"
-    dest: "/etc/apt/sources.list.d/nvidia-container-toolkit.list"
-    mode: "0644"
-
-- name: Update the NVIDIA container toolkit list with the GPG key
-  become: true
-  when:
-    - tapway_gpu_var != "cpu"
-    # - not nvidia_docker
-  ansible.builtin.replace:
-    path: /etc/apt/sources.list.d/nvidia-container-toolkit.list
-    regexp: '^deb https://'
-    replace: 'deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://'
-    backup: true
-
-- name: Install NVIDIA container toolkit
-  become: true
-  when:
-    - tapway_gpu_var != "cpu"
-    # - not nvidia_docker
-  ansible.builtin.apt:
-    name: nvidia-container-toolkit
-    state: present
-    update_cache: true
-
 - name: Create docker group
   become: true
   ansible.builtin.group:
@@ -127,13 +67,6 @@
     groups: docker
     name: "{{ ansible_user_id }}"
 
-- name: Configure docker daemon defaults
-  become: true
-  notify:
-    - Restart docker daemon
-  ansible.builtin.copy:
-    src: "files/etc/docker/daemon.{{ deb_arch }}.json"
-    dest: /etc/docker/daemon.json
 
 - name: Check if reboot is required
   changed_when: reboot_required.stat.exists

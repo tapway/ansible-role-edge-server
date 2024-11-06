@@ -56,7 +56,7 @@ class Service(SimpleService):
         try:
             with jtop() as jetson:
                 # jetson.ok() will provide the proper update frequency
-                while jetson.ok():
+                if jetson.ok():
                     for metric, name in self.gpu_metrics.items():
                         self.gpu_data[metric] = jetson.stats.get(name)
         except Exception as e:

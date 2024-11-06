@@ -6,7 +6,7 @@ services:
     container_name: netdata
     pid: host
     network_mode: host
-    restart: unless-stopped
+    restart: always
     cap_add:
       - SYS_PTRACE
       - SYS_ADMIN

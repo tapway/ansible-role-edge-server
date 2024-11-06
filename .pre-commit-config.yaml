@@ -16,7 +16,7 @@ repos:
       - id: detect-secrets
         args: ['--baseline', '.secrets.baseline']
   - repo: https://github.com/ansible/ansible-lint.git
-    rev: v6.20.0
+    rev: v24.9.2
     hooks:
       - id: ansible-lint
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook

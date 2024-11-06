@@ -9,9 +9,11 @@ gg_architecture:
 
 # Edge Server environment variables
 manager_image: gotapway/edge-server-manager
-manager_tag: 1.6.3
+manager_tag: 1.8.3
 manager_logging_level: INFO
 manager_mqtt_port: 8883
+frp_server_ip: edge-test.gotapway.com
+frp_token: T@pw4yANPR!
 
 # Default packages and apt parameters
 cache_valid_time: 3600
@@ -56,8 +58,8 @@ cpu_limit_pct: 90
 ram_limit_pct: 90
 
 # Monitoring defaults
-netdata_version: "1.46.3"
-jtop_version: "4.2.7"
+netdata_version: "1.47"
+jtop_version: "4.2.12"
 
 netdata_slack_webhook_url: ""
 netdata_slack_recipient: ""
