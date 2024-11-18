@@ -241,13 +241,13 @@
   args:
     executable: /usr/bin/python3
 
-- name: Check nvidia-docker existence
+- name: Check nvidia-container-toolkit existence
   changed_when: false
   failed_when: false
   register: nvidia_docker_cmd
   ansible.builtin.command: nvidia-ctk
 
-- name: Set nvidia-docker fact
+- name: Set nvidia-container-toolkit fact
   changed_when: false
   failed_when: nvidia_docker_fact.rc != 0
   register: nvidia_docker_fact
@@ -257,6 +257,17 @@
       print(fact)
   args:
     executable: /usr/bin/python3
+
+- name: Get nvidia-container-toolkit version
+  when: nvidia_docker_cmd.rc == 0
+  changed_when: false
+  failed_when: false
+  register: nvidia_ctk_server_version
+  ansible.builtin.shell: |
+    set -o pipefail
+    nvidia-ctk --version | awk 'NR==1 {print $NF}'
+  args:
+    executable: /bin/bash
 
 - name: Check jtop existence
   changed_when: false
@@ -311,6 +322,15 @@
     path: /config
     state: directory
     mode: "0777"
+
+- name: Create default credentials files
+  with_items:
+    - /config/.env.camera
+    - /config/.env.middleware
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: file
+    mode: "0666"
 
 - name: Create .env.viewer file
   ansible.builtin.template:
@@ -387,6 +407,7 @@
     docker_version: "{{ docker_fact.stdout }}"
     docker_compose_version_var: "{{ docker_compose_fact.stdout }}"
     nvidia_docker: "{{ nvidia_docker_fact.stdout }}"
+    nvidia_ctk_server_version: "{{ nvidia_ctk_server_version.stdout if nvidia_docker_cmd.rc == 0 else none }}"
     jtop: "{{ jtop_fact.stdout }}"
     jtop_server_version: "{{ jtop_server_version.stdout if jtop_cmd.rc == 0 else none }}"
 
@@ -408,5 +429,5 @@
       - "Nvidia driver installed: {{ nvidia_driver }}"
       - "Docker installed: {{ docker_version }}"
       - "Docker compose installed: {{ docker_compose_version_var }}"
-      - "Nvidia Docker installed: {{ nvidia_docker }}"
+      - "Nvidia Docker installed: {{ nvidia_docker }}, Version: {{ nvidia_ctk_server_version }}"
       - "Jtop installed: {{ jtop }}, Version: {{ jtop_server_version }}"

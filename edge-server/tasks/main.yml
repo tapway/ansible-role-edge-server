@@ -43,7 +43,7 @@
     - apt
   when:
     - tapway_gpu_var == "gpu"
-    - (not nvidia_driver) or (not nvidia_docker)
+    - not nvidia_driver
   ansible.builtin.include_tasks:
     file: gpu.yml
     apply:
@@ -83,7 +83,7 @@
 
 - name: Setup Docker
   when:
-    - docker_version == "no"
+    - (docker_version == "no") or (not nvidia_docker) or (nvidia_ctk_server_version != nvidia_ctk_version)
   tags:
     - docker
     - sep_deploy

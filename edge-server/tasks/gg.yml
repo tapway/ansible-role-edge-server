@@ -10,6 +10,7 @@
   with_items:
     - /config
     - /video
+    - /deployment/videos
     - /models
     - /images
     - /logs
@@ -108,6 +109,7 @@
   ansible.builtin.get_url:
     url: "https://d1onfpft10uf5o.cloudfront.net/greengrass-core/downloads/{{ greengrass_version }}/greengrass-linux-{{ gg_arch }}-{{ greengrass_version }}.tar.gz"
     dest: "{{ ansible_env.HOME }}/opt/greengrass-linux-{{ gg_arch }}-{{ greengrass_version }}.tar.gz"
+    mode: "0664"
 
 - name: Unpack greengrass-core
   become: true
@@ -123,6 +125,7 @@
   ansible.builtin.get_url:
     url: https://www.amazontrust.com/repository/AmazonRootCA1.pem
     dest: /greengrass/certs/root.ca.pem
+    mode: "0644"
 
 - name: Copy greengrass.service to the /etc/systemd/system/
   become: true
@@ -131,6 +134,7 @@
   ansible.builtin.copy:
     src: files/etc/systemd/system/greengrass.service
     dest: /etc/systemd/system/greengrass.service
+    mode: "0644"
 
 - name: Flush handlers
   ansible.builtin.meta: flush_handlers
