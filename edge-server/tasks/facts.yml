@@ -324,13 +324,13 @@
     mode: "0777"
 
 - name: Create default credentials files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: touch
+    mode: "0666"
   with_items:
     - /config/.env.camera
     - /config/.env.middleware
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: file
-    mode: "0666"
 
 - name: Create .env.viewer file
   ansible.builtin.template:

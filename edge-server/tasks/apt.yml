@@ -33,7 +33,7 @@
   ansible.builtin.file:
     path: "/frpc-data"
     state: directory
-    mode: "0775"
+    mode: "0777"
 
 - name: Download and extract FRP
   become: true

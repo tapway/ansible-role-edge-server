@@ -21,7 +21,7 @@
   ansible.builtin.file:
     path: /var/log/samurai-cron.log
     state: touch
-    mode: '0644'
+    mode: '0666'
     modification_time: preserve
     access_time: preserve
 
@@ -41,12 +41,9 @@
       default_size=20
 
       if [ -f "$config_file" ]; then
-        # Check if the key exists using jq
-        if jq -e ".data_retention" "$config_file" > /dev/null; then
+        if jq -e ".data_retention" "$config_file" >/dev/null; then
           days=$(jq -r '.data_retention.day_limit // empty' "$config_file")
-          if [ -z "$days" ]; then
-            days=$default_days
-          fi
+          days=${days:-$default_days}
         else
           days=$default_days
         fi
@@ -54,52 +51,50 @@
         days=$default_days
       fi
 
-      find $path -type f -mtime +$days -delete
+      find "$path" -ignore_readdir_race -type f -mtime +$days -delete
 
       if [ -f "$config_file" ]; then
         # Check if the key exists using jq
         if jq -e ".data_retention" "$config_file" > /dev/null; then
-            size=$(jq -r '.data_retention.size_limit // empty' "$config_file")
-            if [ -z "$size" ]; then
-              size=$default_size
-            fi
+          size=$(jq -r '.data_retention.size_limit // empty' "$config_file")
+          size=${size:-$default_size}
         else
-            size=$default_size
+          size=$default_size
         fi
       else
-          size=$default_size
+        size=$default_size
       fi
 
       # Convert GB to bytes
       threshold_size_float=$(echo "$size * 1024 * 1024 * 1024" | bc)
       # Convert the threshold size to the nearest integer
       threshold_size=$(printf "%.0f" "$threshold_size_float")
-      directory_size=$(du -sb "$path" | awk '{print $1}')
+      directory_size=$(du -sb "$path" 2>/dev/null | awk '{print $1}')
+      directory_size_gb=$(echo "scale=2; $directory_size / 1024 / 1024 / 1024" | bc)
 
       if [ "$directory_size" -gt "$threshold_size" ]; then
-          echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Directory size exceeds $size GB. Deleting oldest files..."
+        echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Directory size $directory_size_gb GB exceeds limit $size GB. Deleting oldest images..."
 
-          # Delete oldest files until the directory size is below the threshold
-          while [ "$directory_size" -gt "$threshold_size" ]; do
-              # Find the oldest file in the directory and delete it
-              oldest_file=$(find "$path" -type f -printf '%T+ %p\n' | sort | head -n 1 | awk '{ print $2 }')
-              rm -rf "$oldest_file"
-
-              # Recalculate the directory size
-              directory_size=$(du -sb "$path" | awk '{print $1}')
-          done
+        # Delete oldest files until the directory size is below the threshold
+        while [ "$directory_size" -gt "$threshold_size" ]; do
+          # Find the oldest files in the directory and delete them
+          find "$path" -ignore_readdir_race -type f -printf '%T+ %p\n' | sort | head -n 100 | awk '{ print $2 }' | xargs -n 10 rm -f
+          # Recalculate the directory size
+          directory_size=$(du -sb "$path" 2>/dev/null | awk '{print $1}')
+        done
+        echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Images delete complete. Directory size is below $size GB now."
       else
-          echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Directory size is below $size GB. No action needed."
+        echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Directory size is below $size GB. No action needed."
       fi
     mode: '0755'
 
-# At 00:00 AM, every day
+# Run every 3 hour, everyday
 - name: Run cronjob
   become: true
   ansible.builtin.cron:
     name: "clean_images_folder"
     minute: "00"
-    hour: "00"
+    hour: "*/3"
     day: "*"
     month: "*"
     state: present

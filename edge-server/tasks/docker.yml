@@ -118,16 +118,28 @@
     replace: 'deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://'
     backup: true
 
+# - name: Unhold NVIDIA Container Toolkit package to uninstall
+#   when:
+#     - nvidia_docker
+#     - nvidia_ctk_server_version != nvidia_ctk_version
+#   become: true
+#   with_items:
+#     - "libnvidia-container1"
+#     - "libnvidia-container-tools"
+#     - "nvidia-container-toolkit-base"
+#     - "nvidia-container-toolkit"
+#   ansible.builtin.dpkg_selections:
+#     name: "{{ item }}"
+#     selection: install
+
 - name: Uninstall NVIDIA container toolkit if other version installed
   when:
     - nvidia_docker
     - nvidia_ctk_server_version != nvidia_ctk_version
   become: true
   with_items:
-    - "libnvidia-container1:{{ deb_arch }}={{ nvidia_ctk_server_version }}-1"
-    - "libnvidia-container-tools={{ nvidia_ctk_server_version }}-1"
-    - "nvidia-container-toolkit-base={{ nvidia_ctk_server_version }}-1"
-    - "nvidia-container-toolkit={{ nvidia_ctk_server_version }}-1"
+    - "libnvidia-container*"
+    - "nvidia-container-*"
   ansible.builtin.apt:
     name: "{{ item }}"
     state: absent
