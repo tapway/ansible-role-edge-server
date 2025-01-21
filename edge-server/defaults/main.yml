@@ -9,7 +9,7 @@ gg_architecture:
 
 # Edge Server environment variables
 manager_image: gotapway/edge-server-manager
-manager_tag: 1.9.0
+manager_tag: 1.9.12
 manager_logging_level: INFO
 manager_mqtt_port: 8883
 frp_server_ip: edgev2.gotapway.com
@@ -34,9 +34,10 @@ apt_packages:
   - net-tools
   - python3
   - python3-pip  # not available in python3.12
+  - systemd-timesyncd
   - ubuntu-drivers-common
-  - wget
   - unzip
+  - wget
 
 awscli_version: "2.17.13"
 frp_version: "0.60.0"

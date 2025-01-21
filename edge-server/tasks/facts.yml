@@ -107,7 +107,7 @@
                   raise ValueError(version)
           elif release == "36":
               if major in ["2", "3", "4"] and minor == "0":
-                  arch = "jetpack6.0"
+                  arch = "jetpack6.1"
               else:
                   raise ValueError(version)
           else:
@@ -323,14 +323,31 @@
     state: directory
     mode: "0777"
 
-- name: Create default credentials files
-  ansible.builtin.file:
+- name: Check if default credential files exist
+  ansible.builtin.stat:
     path: "{{ item }}"
-    state: touch
-    mode: "0666"
   with_items:
     - /config/.env.camera
     - /config/.env.middleware
+  register: cred_file_stats
+
+- name: Create default credentials files if they don't exist
+  ansible.builtin.file:
+    path: "{{ item.item }}"
+    state: touch
+    mode: "0666"
+  with_items: "{{ cred_file_stats.results }}"
+  when: not item.stat.exists
+
+# - name: Create default credentials files
+#   ansible.builtin.file:
+#     path: "{{ item }}"
+#     state: touch
+#     mode: "0666"
+#   with_items:
+#     - /config/.env.camera
+#     - /config/.env.middleware
+#   when: not (item | ansible.builtin.stat).exists
 
 - name: Create .env.viewer file
   ansible.builtin.template:

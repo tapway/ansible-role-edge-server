@@ -62,15 +62,15 @@
       tags:
         - jetson
 
-- name: Install and configure shell history search
-  when: deb_arch == "amd64"
-  tags:
-    - dev
-  ansible.builtin.include_tasks:
-    file: hstr.yml
-    apply:
-      tags:
-        - dev
+# - name: Install and configure shell history search
+#   when: deb_arch == "amd64"
+#   tags:
+#     - dev
+#   ansible.builtin.include_tasks:
+#     file: hstr.yml
+#     apply:
+#       tags:
+#         - dev
 
 - name: Customize bash configuration
   tags:

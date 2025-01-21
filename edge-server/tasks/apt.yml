@@ -13,6 +13,25 @@
     name: "{{ item }}"
     update_cache: true
 
+- name: Enable and start systemd-timesyncd
+  become: true
+  ansible.builtin.systemd:
+    name: systemd-timesyncd
+    enabled: true
+    state: started
+
+- name: Check if timedatectl is available
+  become: true
+  ansible.builtin.command: which timedatectl
+  register: timedatectl_result
+  changed_when: false
+  failed_when: timedatectl_result.rc != 0
+
+- name: Enable NTP with timedatectl
+  become: true
+  ansible.builtin.command: timedatectl set-ntp true
+  when: timedatectl_result.rc == 0
+
 - name: Ensure the AWS CLI installer directory exists
   become: true
   ansible.builtin.file:
