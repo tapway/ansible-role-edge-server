@@ -1,5 +1,6 @@
 - name: Update apt cache and install prerequisite packages for docker
   become: true
+  when: not docker_version
   with_items: "{{ docker_prerequisite_packages }}"
   ansible.builtin.apt:
     name: "{{ item }}"
@@ -8,6 +9,7 @@
 
 - name: Create keyrings directory if it does not exist
   become: true
+  when: not docker_version
   ansible.builtin.file:
     path: /etc/apt/keyrings
     state: directory
@@ -15,6 +17,7 @@
 
 - name: Download docker gpg key
   become: true
+  when: not docker_version
   ansible.builtin.get_url:
     url: https://download.docker.com/linux/ubuntu/gpg
     dest: /tmp/docker.gpg
@@ -22,25 +25,28 @@
 
 - name: Add gpg key to keyrings
   become: true
+  when: not docker_version
   ansible.builtin.command:
     cmd: gpg --dearmor -o /etc/apt/keyrings/docker.gpg /tmp/docker.gpg
     creates: /etc/apt/keyrings/docker.gpg
 
 - name: Ensure docker.gpg has read permission
   become: true
+  when: not docker_version
   ansible.builtin.file:
     path: /etc/apt/keyrings/docker.gpg
     mode: '644'
 
 - name: Add docker repository to apt sources
   become: true
+  when: not docker_version
   ansible.builtin.apt_repository:
     state: present  # default
     repo: "deb [arch={{ deb_arch }} signed-by=/etc/apt/keyrings/docker.gpg]
       https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
     filename: docker
 
-- name: Install packages
+- name: Install docker packages
   become: true
   when: not docker_version
   notify:
@@ -67,6 +73,101 @@
     groups: docker
     name: "{{ ansible_user_id }}"
 
+- name: Download NVIDIA GPG key
+  when:
+    - (not nvidia_docker) or (nvidia_ctk_server_version != nvidia_ctk_version)
+  become: true
+  ansible.builtin.get_url:
+    url: https://nvidia.github.io/libnvidia-container/gpgkey
+    dest: /tmp/nvidia-gpgkey
+    mode: '0644'
+
+- name: Convert NVIDIA GPG key to keyring format
+  when:
+    - (not nvidia_docker) or (nvidia_ctk_server_version != nvidia_ctk_version)
+  become: true
+  ansible.builtin.command:
+    cmd: gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg /tmp/nvidia-gpgkey
+  args:
+    creates: /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+- name: Remove temporary NVIDIA GPG key file
+  when:
+    - (not nvidia_docker) or (nvidia_ctk_server_version != nvidia_ctk_version)
+  become: true
+  ansible.builtin.file:
+    path: /tmp/nvidia-gpgkey
+    state: absent
+
+- name: Download NVIDIA container toolkit list file
+  when:
+    - (not nvidia_docker) or (nvidia_ctk_server_version != nvidia_ctk_version)
+  become: true
+  ansible.builtin.get_url:
+    url: "https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list"
+    dest: "/etc/apt/sources.list.d/nvidia-container-toolkit.list"
+    mode: "0644"
+
+- name: Update the NVIDIA container toolkit list with the GPG key
+  when:
+    - (not nvidia_docker) or (nvidia_ctk_server_version != nvidia_ctk_version)
+  become: true
+  ansible.builtin.replace:
+    path: /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    regexp: '^deb https://'
+    replace: 'deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://'
+    backup: true
+
+- name: Uninstall NVIDIA container toolkit if other version installed
+  when:
+    - nvidia_docker
+    - nvidia_ctk_server_version != nvidia_ctk_version
+  become: true
+  with_items:
+    - "libnvidia-container1:{{ deb_arch }}={{ nvidia_ctk_server_version }}-1"
+    - "libnvidia-container-tools={{ nvidia_ctk_server_version }}-1"
+    - "nvidia-container-toolkit-base={{ nvidia_ctk_server_version }}-1"
+    - "nvidia-container-toolkit={{ nvidia_ctk_server_version }}-1"
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: absent
+
+- name: Install NVIDIA container toolkit
+  when:
+    - (not nvidia_docker) or (nvidia_ctk_server_version != nvidia_ctk_version)
+  become: true
+  with_items:
+    - "libnvidia-container1:{{ deb_arch }}={{ nvidia_ctk_version }}-1"
+    - "libnvidia-container-tools={{ nvidia_ctk_version }}-1"
+    - "nvidia-container-toolkit-base={{ nvidia_ctk_version }}-1"
+    - "nvidia-container-toolkit={{ nvidia_ctk_version }}-1"
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+    allow_downgrade: true
+    update_cache: true
+
+- name: Hold NVIDIA Container Toolkit package to prevent updates
+  become: true
+  with_items:
+    - "libnvidia-container1:{{ deb_arch }}"
+    - "libnvidia-container-tools"
+    - "nvidia-container-toolkit-base"
+    - "nvidia-container-toolkit"
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+
+- name: Configure docker daemon defaults
+  when:
+    - (not nvidia_docker) or (nvidia_ctk_server_version != nvidia_ctk_version)
+  become: true
+  notify:
+    - Restart docker daemon
+  ansible.builtin.copy:
+    src: "files/etc/docker/daemon.{{ deb_arch }}.json"
+    dest: /etc/docker/daemon.json
+    mode: "0644"
 
 - name: Check if reboot is required
   changed_when: reboot_required.stat.exists
