@@ -106,7 +106,7 @@
               else:
                   raise ValueError(version)
           elif release == "36":
-              if major in ["2", "3", "4"] and minor == "0":
+              if major in ["2", "3", "4"] and minor in ["0", "3"]:
                   arch = "jetpack6.1"
               else:
                   raise ValueError(version)
@@ -312,7 +312,8 @@
 
 - name: Set API URLs (two or three servers separate deployment) for viewer
   ansible.builtin.set_fact:
-    api_host: "{{ 'middleware-server' if hosts_info | length == 3 else 'localhost' }}"
+    log_host: localhost
+    api_host: "{{ 'middleware-server' if hosts_info | length >= 2 else 'localhost' }}"
     model_compiler_host: "inference-server"
   when: hosts_info is defined and hosts_info | length > 0
 
@@ -329,6 +330,7 @@
   with_items:
     - /config/.env.camera
     - /config/.env.middleware
+    - /config/.env.viewer
   register: cred_file_stats
 
 - name: Create default credentials files if they don't exist
@@ -339,26 +341,16 @@
   with_items: "{{ cred_file_stats.results }}"
   when: not item.stat.exists
 
-# - name: Create default credentials files
-#   ansible.builtin.file:
-#     path: "{{ item }}"
-#     state: touch
-#     mode: "0666"
-#   with_items:
-#     - /config/.env.camera
-#     - /config/.env.middleware
-#   when: not (item | ansible.builtin.stat).exists
-
-- name: Create .env.viewer file
-  ansible.builtin.template:
-    dest: "/config/.env.viewer"
-    src: templates/opt/.env.viewer
-    backup: true
-    mode: "0664"
-  when:
-    - inventory_hostname == "viewer_server" or
-      (inventory_hostname == "inference_server" and hosts_info is not defined) or
-      (inventory_hostname == "middleware_server" and hosts_info | length == 2)
+# - name: Create .env.viewer file
+#   ansible.builtin.template:
+#     dest: "/config/.env.viewer"
+#     src: templates/opt/.env.viewer
+#     backup: true
+#     mode: "0664"
+#   when:
+#     - inventory_hostname == "viewer_server" or
+#       (inventory_hostname == "inference_server" and hosts_info is not defined) or
+#       (inventory_hostname == "middleware_server" and hosts_info | length == 2)
 
 - name: Set GPU variable for monitoring
   ansible.builtin.set_fact:
@@ -381,6 +373,11 @@
       {% else %}
       netdata
       {% endif %}
+
+- name: Set hostname for netdata
+  ansible.builtin.set_fact:
+    netdata_hostname: "{{ ansible_hostname}}"
+  when: netdata_hostname is not defined or netdata_hostname == ""
 
 - name: Set deploy config for Netdata dGPU
   ansible.builtin.set_fact:

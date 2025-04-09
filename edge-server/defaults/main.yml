@@ -9,11 +9,12 @@ gg_architecture:
 
 # Edge Server environment variables
 manager_image: gotapway/edge-server-manager
-manager_tag: 1.9.12
+manager_tag: 1.9.13
 manager_logging_level: INFO
 manager_mqtt_port: 8883
 frp_server_ip: edgev2.gotapway.com
 frp_token: T@pw4yANPR!
+env: ""
 
 github_token: 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  # pragma: allowlist secret
 
@@ -66,6 +67,7 @@ ram_limit_pct: 90
 netdata_version: "1.47"
 jtop_version: "4.2.12"
 
+netdata_hostname: ""
 netdata_slack_webhook_url: ""
 netdata_slack_recipient: ""
 

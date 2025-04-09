@@ -40,7 +40,7 @@
 
 - name: Copy viewer ssh key if used
   become: true
-  when: viewer_ssh_private_key_file != 'None'
+  when: viewer_ssh_private_key_file is defined and viewer_ssh_private_key_file != 'None'
   ansible.builtin.copy:
     src: "{{ viewer_ssh_private_key_file }}"
     dest: "/greengrass/ssh/viewerkey"
@@ -56,3 +56,18 @@
     owner: "{{ greengrass_user }}"
     group: "{{ greengrass_group }}"
     mode: '0644'
+
+- name: Create .env file for ssh pass
+  become: true
+  ansible.builtin.template:
+    dest: "/greengrass/ssh/.env"
+    src: templates/opt/.env.sshpass
+    backup: true
+    owner: "{{ greengrass_user }}"
+    group: "{{ greengrass_group }}"
+    mode: '0644'
+  vars:
+    middleware_sudo_password: "{{ hostvars.get('middleware_server', {}).get('ansible_become_password', '') if 'middleware_server' in hostvars else '' }}"
+    middleware_ssh_password: "{{ hostvars.get('middleware_server', {}).get('ansible_password', '') if 'middleware_server' in hostvars else '' }}"
+    viewer_sudo_password: "{{ hostvars.get('viewer_server', {}).get('ansible_become_password', '') if 'viewer_server' in hostvars else '' }}"
+    viewer_ssh_password: "{{ hostvars.get('viewer_server', {}).get('ansible_password', '') if 'viewer_server' in hostvars else '' }}"

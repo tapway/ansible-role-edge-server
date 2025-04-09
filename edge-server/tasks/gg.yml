@@ -89,7 +89,7 @@
   failed_when: install_pip.rc != 0
   become: true
   ansible.builtin.shell:
-    cmd: /usr/bin/python3.8 /tmp/get-pip.py --break-system-packages
+    cmd: /usr/bin/python3.8 /tmp/get-pip.py --break-system-packages --ignore-installed
   register: install_pip
   when: get_pip is changed
 
@@ -117,7 +117,7 @@
     - retry
     - fabric
     - cffi
-  ansible.builtin.command: "python3.8 -m pip install {{ item }}"
+  ansible.builtin.command: "python3.8 -m pip install --ignore-installed {{ item }}"
 
 - name: Download greengrass-core
   ansible.builtin.get_url:

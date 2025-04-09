@@ -7,7 +7,7 @@ MAKEFLAGS += --no-builtin-rules
 
 ROOT := $(shell pwd)
 IMAGE := gotapway/ansible-role-edge-server
-VERSION := test
+VERSION := prod
 
 .DEFAULT_GOAL = help
 

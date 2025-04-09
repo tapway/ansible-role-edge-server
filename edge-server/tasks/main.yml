@@ -116,6 +116,15 @@
       tags:
         - gg
 
+- name: Setup FRP Client
+  tags:
+    - frp
+  ansible.builtin.include_tasks:
+    file: frp.yml
+    apply:
+      tags:
+        - frp
+
 - name: Install Haikang camera MVS
   tags:
     - mvs
