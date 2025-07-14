@@ -1,6 +1,6 @@
 - name: Update apt cache and install prerequisite packages for docker
   become: true
-  when: not docker_version
+  when: not installed_docker_version
   with_items: "{{ docker_prerequisite_packages }}"
   ansible.builtin.apt:
     name: "{{ item }}"
@@ -9,7 +9,7 @@
 
 - name: Create keyrings directory if it does not exist
   become: true
-  when: not docker_version
+  when: not installed_docker_version
   ansible.builtin.file:
     path: /etc/apt/keyrings
     state: directory
@@ -17,7 +17,7 @@
 
 - name: Download docker gpg key
   become: true
-  when: not docker_version
+  when: not installed_docker_version
   ansible.builtin.get_url:
     url: https://download.docker.com/linux/ubuntu/gpg
     dest: /tmp/docker.gpg
@@ -25,30 +25,32 @@
 
 - name: Add gpg key to keyrings
   become: true
-  when: not docker_version
+  when: not installed_docker_version
   ansible.builtin.command:
     cmd: gpg --dearmor -o /etc/apt/keyrings/docker.gpg /tmp/docker.gpg
     creates: /etc/apt/keyrings/docker.gpg
 
 - name: Ensure docker.gpg has read permission
   become: true
-  when: not docker_version
+  when: not installed_docker_version
   ansible.builtin.file:
     path: /etc/apt/keyrings/docker.gpg
     mode: '644'
 
 - name: Add docker repository to apt sources
   become: true
-  when: not docker_version
+  when: not installed_docker_version
   ansible.builtin.apt_repository:
     state: present  # default
     repo: "deb [arch={{ deb_arch }} signed-by=/etc/apt/keyrings/docker.gpg]
       https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
     filename: docker
 
-- name: Install docker packages
+- name: Install docker packages for GPU servers
   become: true
-  when: not docker_version
+  when:
+    - tapway_gpu_var == "gpu"
+    - not installed_docker_version
   notify:
     - Restart docker daemon
   with_items:
@@ -58,7 +60,25 @@
     - docker-ce-cli
   ansible.builtin.apt:
     name: "{{ item }}"
-    cache_valid_time: "{{ cache_valid_time }}"
+    update_cache: true
+
+# Docker version 28 has networking issues with jetson servers
+- name: Install docker packages for Jetson servers
+  become: true
+  when:
+    - tapway_gpu_var != "gpu"
+    - not installed_docker_version or installed_docker_version is version('28.0.0', '>=')
+  notify:
+    - Restart docker daemon
+  with_items:
+    - containerd.io
+    - docker-buildx-plugin
+    - docker-ce={{ docker_version_jetson_str }}
+    - docker-ce-cli={{ docker_version_jetson_str }}
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    update_cache: true
+    allow_downgrade: true
 
 - name: Create docker group
   become: true
@@ -121,6 +141,7 @@
 # - name: Unhold NVIDIA Container Toolkit package to uninstall
 #   when:
 #     - nvidia_docker
+#     - tapway_gpu_var != "gpu"
 #     - nvidia_ctk_server_version != nvidia_ctk_version
 #   become: true
 #   with_items:
@@ -132,8 +153,11 @@
 #     name: "{{ item }}"
 #     selection: install
 
-- name: Uninstall NVIDIA container toolkit if other version installed
+
+# https://github.com/NVIDIA/nvidia-container-toolkit/issues/795
+- name: Uninstall NVIDIA container toolkit if other version installed in jetson
   when:
+    - tapway_gpu_var != "gpu"
     - nvidia_docker
     - nvidia_ctk_server_version != nvidia_ctk_version
   become: true
@@ -144,8 +168,9 @@
     name: "{{ item }}"
     state: absent
 
-- name: Install NVIDIA container toolkit
+- name: Install NVIDIA container toolkit in jetson
   when:
+    - tapway_gpu_var != "gpu"
     - (not nvidia_docker) or (nvidia_ctk_server_version != nvidia_ctk_version)
   become: true
   with_items:
@@ -159,7 +184,9 @@
     allow_downgrade: true
     update_cache: true
 
-- name: Hold NVIDIA Container Toolkit package to prevent updates
+- name: Hold NVIDIA Container Toolkit package to prevent updates in jetson
+  when:
+    - tapway_gpu_var != "gpu"
   become: true
   with_items:
     - "libnvidia-container1:{{ deb_arch }}"
@@ -170,9 +197,18 @@
     name: "{{ item }}"
     selection: hold
 
+- name: Install NVIDIA container toolkit in gpu
+  when:
+    - tapway_gpu_var == "gpu"
+  become: true
+  ansible.builtin.apt:
+    name: "nvidia-container-toolkit"
+    state: present
+    update_cache: true
+
 - name: Configure docker daemon defaults
   when:
-    - (not nvidia_docker) or (nvidia_ctk_server_version != nvidia_ctk_version)
+    - (not nvidia_docker)
   become: true
   notify:
     - Restart docker daemon

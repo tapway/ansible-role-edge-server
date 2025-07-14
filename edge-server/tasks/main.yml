@@ -82,8 +82,11 @@
         - dev
 
 - name: Setup Docker
-  when:
-    - (docker_version == "no") or (not nvidia_docker) or (nvidia_ctk_server_version != nvidia_ctk_version)
+  when: >
+    (installed_docker_version == "no") or
+    (not nvidia_docker) or
+    (nvidia_ctk_server_version != nvidia_ctk_version) or
+    (deb_arch == "arm64" and installed_docker_version is version('28.0.0', '>='))
   tags:
     - docker
     - sep_deploy
@@ -96,7 +99,7 @@
 
 - name: Setup Docker Compose
   when:
-    - docker_compose_version_var != docker_compose_version
+    - installed_docker_compose_version != docker_compose_version
   tags:
     - docker
     - sep_deploy

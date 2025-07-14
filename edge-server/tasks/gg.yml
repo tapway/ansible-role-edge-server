@@ -73,14 +73,13 @@
   with_items:
     - python3.8
     - python3.8-distutils
-    - python3-pip
   ansible.builtin.apt:
     name: "{{ item }}"
     cache_valid_time: "{{ cache_valid_time }}"
 
 - name: Get pip for python3.8
   ansible.builtin.get_url:
-    url: https://bootstrap.pypa.io/get-pip.py
+    url: https://bootstrap.pypa.io/pip/3.8/get-pip.py
     dest: /tmp/get-pip.py
     mode: '0664'
   register: get_pip
@@ -92,17 +91,6 @@
     cmd: /usr/bin/python3.8 /tmp/get-pip.py --break-system-packages --ignore-installed
   register: install_pip
   when: get_pip is changed
-
-- name: Remove packages installed by debian for ubuntu 24
-  become: true
-  with_items:
-    - python3-urllib3
-    - python3-attrs
-  ansible.builtin.apt:
-    name: "{{ item }}"
-    state: absent
-  # Task specific to Ubuntu 24.04
-  when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] is version('24.04', '==')
 
 - name: Add Greengrass runtime dependencies
   become: true
@@ -117,15 +105,17 @@
     - retry
     - fabric
     - cffi
-  ansible.builtin.command: "python3.8 -m pip install --ignore-installed {{ item }}"
+    - pyopenssl==25.0.0
+  ansible.builtin.command: "python3.8 -m pip install --ignore-installed {{ item }} --target=/usr/local/lib/python3.8/dist-packages"
 
 - name: Download greengrass-core
   ansible.builtin.get_url:
     url: "https://d1onfpft10uf5o.cloudfront.net/greengrass-core/downloads/{{ greengrass_version }}/greengrass-linux-{{ gg_arch }}-{{ greengrass_version }}.tar.gz"
     dest: "{{ ansible_env.HOME }}/opt/greengrass-linux-{{ gg_arch }}-{{ greengrass_version }}.tar.gz"
     mode: "0664"
+  notify: Delete greengrass-core archive
 
-- name: Unpack greengrass-core
+- name: Unpack greengrass-core only if config.json does not exist
   become: true
   ansible.builtin.unarchive:
     src: "{{ ansible_env.HOME }}/opt/greengrass-linux-{{ gg_arch }}-{{ greengrass_version }}.tar.gz"
@@ -133,6 +123,7 @@
     remote_src: true
     extra_opts:
       - --strip-components=1
+    creates: /greengrass/config/config.json
 
 - name: Download greengrass certs
   become: true

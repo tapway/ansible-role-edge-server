@@ -45,7 +45,19 @@
     src: "https://awscli.amazonaws.com/awscli-exe-linux-{{ arch }}-{{ awscli_version }}.zip"
     dest: "/opt/awscli"
     remote_src: true
-  notify: Install AWS CLI
+    creates: "/opt/awscli/aws/install"
+
+- name: Install AWS CLI if not already installed
+  become: true
+  ansible.builtin.command: "/opt/awscli/aws/install"
+  args:
+    creates: /usr/local/bin/aws
+
+# - name: Delete AWS CLI Installer after installation
+#   ansible.builtin.file:
+#     path: "/opt/greengrass-linux-{{ gg_arch }}-{{ greengrass_version }}.tar.gz"
+#     state: absent
+#   when: greengrass_core_download.changed
 
 - name: Check if reboot is required
   changed_when: reboot_required.stat.exists

@@ -106,7 +106,7 @@
               else:
                   raise ValueError(version)
           elif release == "36":
-              if major in ["2", "3", "4"] and minor in ["0", "3"]:
+              if major in ["2", "3", "4"] and minor in ["0", "3", "4"]:
                   arch = "jetpack6.1"
               else:
                   raise ValueError(version)
@@ -211,7 +211,7 @@
   changed_when: false
   failed_when: false
   register: docker_cmd
-  ansible.builtin.shell: docker -v
+  ansible.builtin.shell: docker -v | awk '{ print $3 }' | sed 's/,//'
 
 - name: Set docker fact
   changed_when: false
@@ -376,7 +376,7 @@
 
 - name: Set hostname for netdata
   ansible.builtin.set_fact:
-    netdata_hostname: "{{ ansible_hostname}}"
+    netdata_hostname: "{{ ansible_hostname }}"
   when: netdata_hostname is not defined or netdata_hostname == ""
 
 - name: Set deploy config for Netdata dGPU
@@ -415,11 +415,12 @@
     gg_arch: "{{ gg_architecture[ansible_architecture] }}"
     host_name: "{{ hostname_cmd.stdout }}"
     nvidia_distribution_name: "{{ os_release_cmd.stdout }}"
-    nvidia_driver: "{{ nvidia_smi_fact.stdout }}"
+    nvidia_driver: "{{ nvidia_smi_fact.stdout == 'yes' }}"
     tapway_ram_limit: "{{ ram.stdout }}"
     tapway_cpu_limit: "{{ cpu.stdout }}"
-    docker_version: "{{ docker_fact.stdout }}"
-    docker_compose_version_var: "{{ docker_compose_fact.stdout }}"
+    installed_docker_version: "{{ docker_fact.stdout }}"
+    installed_docker_compose_version: "{{ docker_compose_fact.stdout }}"
+    docker_version_jetson_str: "{{ docker_version_jetson }}.{{ ansible_distribution_version }}~{{ ansible_distribution_release }}"
     nvidia_docker: "{{ nvidia_docker_fact.stdout }}"
     nvidia_ctk_server_version: "{{ nvidia_ctk_server_version.stdout if nvidia_docker_cmd.rc == 0 else none }}"
     jtop: "{{ jtop_fact.stdout }}"
@@ -441,7 +442,7 @@
       - "TAPWAY_RAM_LIMIT={{ tapway_ram_limit }}"
       - "TAPWAY_CPU_LIMIT={{ tapway_cpu_limit }}"
       - "Nvidia driver installed: {{ nvidia_driver }}"
-      - "Docker installed: {{ docker_version }}"
-      - "Docker compose installed: {{ docker_compose_version_var }}"
+      - "Docker installed: {{ installed_docker_version }}"
+      - "Docker compose installed: {{ installed_docker_compose_version }}"
       - "Nvidia Docker installed: {{ nvidia_docker }}, Version: {{ nvidia_ctk_server_version }}"
       - "Jtop installed: {{ jtop }}, Version: {{ jtop_server_version }}"
