@@ -7,18 +7,23 @@ gg_architecture:
   "aarch64": "aarch64"
   "x86_64": "x86-64"
 
+env: "dev"
+
 # Edge Server environment variables
 manager_image: gotapway/edge-server-manager
-manager_tag: 1.8.3
+manager_tag: "{{ env }}"
 manager_logging_level: INFO
 manager_mqtt_port: 8883
-frp_server_ip: edge-test.gotapway.com
+frp_server_ip: edgev2.gotapway.com
 frp_token: T@pw4yANPR!
+
+github_token: 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  # pragma: allowlist secret
 
 # Default packages and apt parameters
 cache_valid_time: 3600
 
 apt_packages:
+  - apt-utils
   - avahi-daemon
   - build-essential
   - ca-certificates
@@ -31,16 +36,19 @@ apt_packages:
   - net-tools
   - python3
   - python3-pip  # not available in python3.12
+  - systemd-timesyncd
   - ubuntu-drivers-common
-  - wget
   - unzip
+  - wget
 
 awscli_version: "2.17.13"
-frp_version: "0.59.0"
+frp_version: "0.60.0"
 
 docker_prerequisite_packages:
   - ca-certificates
   - curl
+# Docker version (>28.0.0 will have networking issues with jetson servers)
+docker_version_jetson: "5:27.5.1-1~ubuntu"
 # Docker compose version (>v2.24.5 will have extends cannot be used with depends_on error)
 docker_compose_version: "v2.24.5"
 
@@ -62,6 +70,7 @@ ram_limit_pct: 90
 netdata_version: "1.47"
 jtop_version: "4.2.12"
 
+netdata_hostname: ""
 netdata_slack_webhook_url: ""
 netdata_slack_recipient: ""
 

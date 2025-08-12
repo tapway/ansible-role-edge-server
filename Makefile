@@ -7,7 +7,13 @@ MAKEFLAGS += --no-builtin-rules
 
 ROOT := $(shell pwd)
 IMAGE := gotapway/ansible-role-edge-server
-VERSION := test
+VERSION := prod
+# Get the current year and week number
+YEAR := $(shell date +%Y)
+WEEK := $(shell date +%-V)
+DAY := $(shell date +%u)
+# Define the tag format
+TAG := $(YEAR).$(WEEK).$(DAY)
 
 .DEFAULT_GOAL = help
 
@@ -29,7 +35,10 @@ test:  ## Run playbook
 	 ANSIBLE_CONFIG=./edge-server/tests/ansible.cfg ansible-playbook -i inventory.yml ./edge-server/tests/playbook.yml
 
 ##@ Docker
-.PHONY: builder-init build
+.PHONY: tag builder-init build
+
+tag:  ## Display current TAG
+	@echo "Current TAG: $(TAG)"
 
 builder-init:  ## Setup for amd and arm build
 	@docker run --privileged --rm tonistiigi/binfmt --install arm64, amd64

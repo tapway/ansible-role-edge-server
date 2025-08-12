@@ -27,6 +27,11 @@
   become: true
   ansible.builtin.command: "/opt/awscli/aws/install"
 
+- name: Delete greengrass-core archive
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/opt/greengrass-linux-{{ gg_arch }}-{{ greengrass_version }}.tar.gz"
+    state: absent
+
 - name: Restart frp-client
   become: true
   ansible.builtin.service:

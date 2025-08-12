@@ -1,7 +1,7 @@
 - name: Install same jtop version
   become: true
   when:
-    - tapway_gpu_var == "jetpack5.1"
+    - tapway_gpu_var in ["jetpack5.1", "jetpack6.1"]
     - jtop_server_version != jtop_version
   ansible.builtin.pip:
     name: jetson-stats=={{ jtop_version }}

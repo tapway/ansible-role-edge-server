@@ -15,6 +15,7 @@ services:
     restart: unless-stopped
     volumes:
       - /etc/hostname:/etc/hostname:ro
+      - /etc/environment:/etc/environment:ro
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
       - /greengrass:/greengrass

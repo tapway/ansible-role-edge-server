@@ -65,6 +65,8 @@
   ansible.builtin.apt_repository:
     repo: "ppa:deadsnakes/ppa"
     state: present
+  environment:
+    DEBIAN_FRONTEND: noninteractive
 
 - name: Add Greengrass runtime
   become: true
@@ -77,7 +79,7 @@
 
 - name: Get pip for python3.8
   ansible.builtin.get_url:
-    url: https://bootstrap.pypa.io/get-pip.py
+    url: https://bootstrap.pypa.io/pip/3.8/get-pip.py
     dest: /tmp/get-pip.py
     mode: '0664'
   register: get_pip
@@ -86,7 +88,7 @@
   failed_when: install_pip.rc != 0
   become: true
   ansible.builtin.shell:
-    cmd: /usr/bin/python3.8 /tmp/get-pip.py
+    cmd: /usr/bin/python3.8 /tmp/get-pip.py --break-system-packages --ignore-installed
   register: install_pip
   when: get_pip is changed
 
@@ -103,15 +105,17 @@
     - retry
     - fabric
     - cffi
-  ansible.builtin.command: "python3.8 -m pip install {{ item }}"
+    - pyopenssl==25.0.0
+  ansible.builtin.command: "python3.8 -m pip install --ignore-installed {{ item }} --target=/usr/local/lib/python3.8/dist-packages"
 
 - name: Download greengrass-core
   ansible.builtin.get_url:
     url: "https://d1onfpft10uf5o.cloudfront.net/greengrass-core/downloads/{{ greengrass_version }}/greengrass-linux-{{ gg_arch }}-{{ greengrass_version }}.tar.gz"
     dest: "{{ ansible_env.HOME }}/opt/greengrass-linux-{{ gg_arch }}-{{ greengrass_version }}.tar.gz"
     mode: "0664"
+  notify: Delete greengrass-core archive
 
-- name: Unpack greengrass-core
+- name: Unpack greengrass-core only if config.json does not exist
   become: true
   ansible.builtin.unarchive:
     src: "{{ ansible_env.HOME }}/opt/greengrass-linux-{{ gg_arch }}-{{ greengrass_version }}.tar.gz"
@@ -119,6 +123,7 @@
     remote_src: true
     extra_opts:
       - --strip-components=1
+    creates: /greengrass/config/config.json
 
 - name: Download greengrass certs
   become: true

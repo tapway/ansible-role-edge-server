@@ -101,13 +101,13 @@
                   arch = "jetpack5.0.2"
               elif major in ["2", "3", "4"] and minor == "1":
                   arch = "jetpack5.1"
-              elif major in ["5", "6"] and minor == "0":
+              elif major in ["5", "6"] and minor in ["0", "1", "2"]:
                   arch = "jetpack5.1"
               else:
                   raise ValueError(version)
           elif release == "36":
-              if major in ["2", "3", "4"] and minor == "0":
-                  arch = "jetpack6.0"
+              if major in ["2", "3", "4"] and minor in ["0", "3", "4"]:
+                  arch = "jetpack6.1"
               else:
                   raise ValueError(version)
           else:
@@ -116,8 +116,9 @@
 
       display_info = """{{ display_info.stdout }}"""
       l4t_version = """{{ nvidia_l4t_cmd.stdout }}"""
-      if "no packages found matching nvidia-l4t-core" in l4t_version:
-          if "vendor: NVIDIA Corporation" in display_info:
+      l4t_installed = """{{ nvidia_l4t_cmd.rc }}"""
+      if l4t_installed == "1":
+          if "NVIDIA Corporation" in display_info:
               arch = "gpu"
           else:
               arch = "cpu"
@@ -211,7 +212,7 @@
   changed_when: false
   failed_when: false
   register: docker_cmd
-  ansible.builtin.shell: docker -v
+  ansible.builtin.shell: docker -v | awk '{ print $3 }' | sed 's/,//'
 
 - name: Set docker fact
   changed_when: false
@@ -312,7 +313,8 @@
 
 - name: Set API URLs (two or three servers separate deployment) for viewer
   ansible.builtin.set_fact:
-    api_host: "{{ 'middleware-server' if hosts_info | length == 3 else 'localhost' }}"
+    log_host: localhost
+    api_host: "{{ 'middleware-server' if hosts_info | length >= 2 else 'localhost' }}"
     model_compiler_host: "inference-server"
   when: hosts_info is defined and hosts_info | length > 0
 
@@ -323,25 +325,33 @@
     state: directory
     mode: "0777"
 
-- name: Create default credentials files
+- name: Check if default credential files exist
+  ansible.builtin.stat:
+    path: "{{ item }}"
   with_items:
     - /config/.env.camera
     - /config/.env.middleware
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: file
-    mode: "0666"
+    - /config/.env.viewer
+  register: cred_file_stats
 
-- name: Create .env.viewer file
-  ansible.builtin.template:
-    dest: "/config/.env.viewer"
-    src: templates/opt/.env.viewer
-    backup: true
-    mode: "0664"
-  when:
-    - inventory_hostname == "viewer_server" or
-      (inventory_hostname == "inference_server" and hosts_info is not defined) or
-      (inventory_hostname == "middleware_server" and hosts_info | length == 2)
+- name: Create default credentials files if they don't exist
+  ansible.builtin.file:
+    path: "{{ item.item }}"
+    state: touch
+    mode: "0666"
+  with_items: "{{ cred_file_stats.results }}"
+  when: not item.stat.exists
+
+# - name: Create .env.viewer file
+#   ansible.builtin.template:
+#     dest: "/config/.env.viewer"
+#     src: templates/opt/.env.viewer
+#     backup: true
+#     mode: "0664"
+#   when:
+#     - inventory_hostname == "viewer_server" or
+#       (inventory_hostname == "inference_server" and hosts_info is not defined) or
+#       (inventory_hostname == "middleware_server" and hosts_info | length == 2)
 
 - name: Set GPU variable for monitoring
   ansible.builtin.set_fact:
@@ -364,6 +374,11 @@
       {% else %}
       netdata
       {% endif %}
+
+- name: Set hostname for netdata
+  ansible.builtin.set_fact:
+    netdata_hostname: "{{ ansible_hostname }}"
+  when: netdata_hostname is not defined or netdata_hostname == ""
 
 - name: Set deploy config for Netdata dGPU
   ansible.builtin.set_fact:
@@ -401,11 +416,12 @@
     gg_arch: "{{ gg_architecture[ansible_architecture] }}"
     host_name: "{{ hostname_cmd.stdout }}"
     nvidia_distribution_name: "{{ os_release_cmd.stdout }}"
-    nvidia_driver: "{{ nvidia_smi_fact.stdout }}"
+    nvidia_driver: "{{ nvidia_smi_fact.stdout == 'yes' }}"
     tapway_ram_limit: "{{ ram.stdout }}"
     tapway_cpu_limit: "{{ cpu.stdout }}"
-    docker_version: "{{ docker_fact.stdout }}"
-    docker_compose_version_var: "{{ docker_compose_fact.stdout }}"
+    installed_docker_version: "{{ docker_fact.stdout }}"
+    installed_docker_compose_version: "{{ docker_compose_fact.stdout }}"
+    docker_version_jetson_str: "{{ docker_version_jetson }}.{{ ansible_distribution_version }}~{{ ansible_distribution_release }}"
     nvidia_docker: "{{ nvidia_docker_fact.stdout }}"
     nvidia_ctk_server_version: "{{ nvidia_ctk_server_version.stdout if nvidia_docker_cmd.rc == 0 else none }}"
     jtop: "{{ jtop_fact.stdout }}"
@@ -427,7 +443,7 @@
       - "TAPWAY_RAM_LIMIT={{ tapway_ram_limit }}"
       - "TAPWAY_CPU_LIMIT={{ tapway_cpu_limit }}"
       - "Nvidia driver installed: {{ nvidia_driver }}"
-      - "Docker installed: {{ docker_version }}"
-      - "Docker compose installed: {{ docker_compose_version_var }}"
+      - "Docker installed: {{ installed_docker_version }}"
+      - "Docker compose installed: {{ installed_docker_compose_version }}"
       - "Nvidia Docker installed: {{ nvidia_docker }}, Version: {{ nvidia_ctk_server_version }}"
       - "Jtop installed: {{ jtop }}, Version: {{ jtop_server_version }}"
