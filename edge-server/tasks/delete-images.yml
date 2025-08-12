@@ -40,52 +40,58 @@
       default_days=7
       default_size=20
 
-      if [ -f "$config_file" ]; then
-        if jq -e ".data_retention" "$config_file" >/dev/null; then
-          days=$(jq -r '.data_retention.day_limit // empty' "$config_file")
-          days=${days:-$default_days}
-        else
-          days=$default_days
-        fi
-      else
-        days=$default_days
+      # Get retention days from config
+      if [ -f "$config_file" ] && jq -e ".data_retention" "$config_file" >/dev/null; then
+        days=$(jq -r '.data_retention.day_limit // empty' "$config_file")
       fi
+      days=${days:-$default_days}
 
+      echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Deleting files older than $days days..."
       find "$path" -ignore_readdir_race -type f -mtime +$days -delete
 
-      if [ -f "$config_file" ]; then
-        # Check if the key exists using jq
-        if jq -e ".data_retention" "$config_file" > /dev/null; then
-          size=$(jq -r '.data_retention.size_limit // empty' "$config_file")
-          size=${size:-$default_size}
-        else
-          size=$default_size
+      # Get threshold size from config
+      if [ -f "$config_file" ] && jq -e ".data_retention" "$config_file" >/dev/null; then
+        size=$(jq -r '.data_retention.size_limit // empty' "$config_file")
+      fi
+      size=${size:-$default_size}
+
+      threshold_size=$(echo "$size * 1024^3" | bc | awk '{printf "%.0f", $0}')
+      directory_size=$(du -sb "$path" | awk '{print $1}')
+      directory_size_gb=$(echo "scale=2; $directory_size / 1024^3" | bc)
+
+      if [ "$directory_size" -le "$threshold_size" ]; then
+        echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Size within limits ($directory_size_gb GB). No action needed."
+        exit 0
+      fi
+
+      echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Size exceeded: $directory_size_gb GB > $size GB. Deleting oldest files..."
+
+      # Generate sorted file list (oldest first)
+      tempfile=$(mktemp)
+      find "$path" -ignore_readdir_race -type f -printf '%T@ %s %p\0' > "$tempfile"
+      sort -zn -o "$tempfile" "$tempfile"  # Null-delimited sort by timestamp
+
+      # Delete files until under threshold
+      target_size=$((directory_size - threshold_size))
+      deleted_size=0
+
+      while IFS= read -r -d '' record && [ "$deleted_size" -lt "$target_size" ]; do
+        # Extract size and path from null-delimited record
+        size_bytes="${record%% *}"       # First field is timestamp
+        file_path="${record#* }"         # Remove timestamp
+        size_bytes="${file_path%% *}"    # Next field is size
+        file_path="${file_path#* }"      # Remainder is path
+
+        if [ -f "$file_path" ]; then
+          rm -f "$file_path" && deleted_size=$((deleted_size + size_bytes))
         fi
-      else
-        size=$default_size
-      fi
+      done < "$tempfile"
+      rm -f "$tempfile"
 
-      # Convert GB to bytes
-      threshold_size_float=$(echo "$size * 1024 * 1024 * 1024" | bc)
-      # Convert the threshold size to the nearest integer
-      threshold_size=$(printf "%.0f" "$threshold_size_float")
-      directory_size=$(du -sb "$path" 2>/dev/null | awk '{print $1}')
-      directory_size_gb=$(echo "scale=2; $directory_size / 1024 / 1024 / 1024" | bc)
-
-      if [ "$directory_size" -gt "$threshold_size" ]; then
-        echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Directory size $directory_size_gb GB exceeds limit $size GB. Deleting oldest images..."
-
-        # Delete oldest files until the directory size is below the threshold
-        while [ "$directory_size" -gt "$threshold_size" ]; do
-          # Find the oldest files in the directory and delete them
-          find "$path" -ignore_readdir_race -type f -printf '%T+ %p\n' | sort | head -n 100 | awk '{ print $2 }' | xargs -n 10 rm -f
-          # Recalculate the directory size
-          directory_size=$(du -sb "$path" 2>/dev/null | awk '{print $1}')
-        done
-        echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Images delete complete. Directory size is below $size GB now."
-      else
-        echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Directory size is below $size GB. No action needed."
-      fi
+      # Final size check
+      new_size=$(du -sb "$path" | awk '{print $1}')
+      new_size_gb=$(echo "scale=2; $new_size / 1024^3" | bc)
+      echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Deletion completed. Final size: $new_size_gb GB."
     mode: '0755'
 
 # Run every 3 hour, everyday

@@ -53,12 +53,6 @@
   args:
     creates: /usr/local/bin/aws
 
-# - name: Delete AWS CLI Installer after installation
-#   ansible.builtin.file:
-#     path: "/opt/greengrass-linux-{{ gg_arch }}-{{ greengrass_version }}.tar.gz"
-#     state: absent
-#   when: greengrass_core_download.changed
-
 - name: Check if reboot is required
   changed_when: reboot_required.stat.exists
   notify: Reboot
