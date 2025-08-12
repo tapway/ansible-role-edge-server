@@ -7,7 +7,7 @@ MAKEFLAGS += --no-builtin-rules
 
 ROOT := $(shell pwd)
 IMAGE := gotapway/ansible-role-edge-server
-VERSION := prod-2025.25.3
+VERSION := prod
 # Get the current year and week number
 YEAR := $(shell date +%Y)
 WEEK := $(shell date +%-V)
