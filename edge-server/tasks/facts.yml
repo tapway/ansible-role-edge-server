@@ -342,17 +342,6 @@
   with_items: "{{ cred_file_stats.results }}"
   when: not item.stat.exists
 
-# - name: Create .env.viewer file
-#   ansible.builtin.template:
-#     dest: "/config/.env.viewer"
-#     src: templates/opt/.env.viewer
-#     backup: true
-#     mode: "0664"
-#   when:
-#     - inventory_hostname == "viewer_server" or
-#       (inventory_hostname == "inference_server" and hosts_info is not defined) or
-#       (inventory_hostname == "middleware_server" and hosts_info | length == 2)
-
 - name: Set GPU variable for monitoring
   ansible.builtin.set_fact:
     tapway_gpu_var: "{{ tapway_gpu_arch.stdout }}"

@@ -50,8 +50,11 @@ builder-init:  ## Setup for amd and arm build
 		docker buildx create --use --platform=linux/arm64 --name edge-server; \
 	fi
 
-build: builder-init  ## Build and push ansible role edge server image
-	docker buildx build --platform arm64,amd64 --push -t ${IMAGE}:${VERSION} -f Dockerfile .
+build-stg: builder-init  ## Build and push ansible role edge server image
+	docker buildx build --platform arm64,amd64 --push -t ${IMAGE}:dev -t ${IMAGE}:${TAG}-stg -f Dockerfile .
+
+build-prod: builder-init  ## Build and push ansible role edge server image
+	docker buildx build --platform arm64,amd64 --push -t ${IMAGE}:prod -t ${IMAGE}:${TAG}-prod -f Dockerfile .
 
 ##@ Miscellaneous
 .PHONY: secrets-baseline-create secrets-baseline-audit secrets-update
