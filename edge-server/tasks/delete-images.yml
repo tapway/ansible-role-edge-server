@@ -33,9 +33,10 @@
     content: |
       #!/bin/bash
 
-      exec 2>&1 &>>/var/log/samurai-cron.log
+      exec >>/var/log/samurai-cron.log 2>&1
 
-      path="/images"
+      images_path="/images"
+      videos_path="/videos"
       config_file="/config/middleware_config.json"
       default_days=7
       default_size=20
@@ -46,52 +47,73 @@
       fi
       days=${days:-$default_days}
 
-      echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Deleting files older than $days days..."
-      find "$path" -ignore_readdir_race -type f -mtime +$days -delete
-
-      # Get threshold size from config
+      # Get threshold images directory size from config
       if [ -f "$config_file" ] && jq -e ".data_retention" "$config_file" >/dev/null; then
-        size=$(jq -r '.data_retention.size_limit // empty' "$config_file")
+        images_size=$(jq -r '.data_retention.images_size_limit // empty' "$config_file")
       fi
-      size=${size:-$default_size}
+      images_size=${images_size:-$default_size}
 
-      threshold_size=$(echo "$size * 1024^3" | bc | awk '{printf "%.0f", $0}')
-      directory_size=$(du -sb "$path" | awk '{print $1}')
-      directory_size_gb=$(echo "scale=2; $directory_size / 1024^3" | bc)
-
-      if [ "$directory_size" -le "$threshold_size" ]; then
-        echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Size within limits ($directory_size_gb GB). No action needed."
-        exit 0
+      # Get threshold videos directory size from config
+      if [ -f "$config_file" ] && jq -e ".data_retention" "$config_file" >/dev/null; then
+        videos_size=$(jq -r '.data_retention.videos_size_limit // empty' "$config_file")
       fi
+      videos_size=${videos_size:-$default_size}
 
-      echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Size exceeded: $directory_size_gb GB > $size GB. Deleting oldest files..."
+      # Function to process a directory
+      process_dir() {
+        local dir_path="$1"
+        local size="$2"
+        local label="$3"
 
-      # Generate sorted file list (oldest first)
-      tempfile=$(mktemp)
-      find "$path" -ignore_readdir_race -type f -printf '%T@ %s %p\0' > "$tempfile"
-      sort -zn -o "$tempfile" "$tempfile"  # Null-delimited sort by timestamp
+        echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Processing $label directory: $dir_path"
 
-      # Delete files until under threshold
-      target_size=$((directory_size - threshold_size))
-      deleted_size=0
+        # Delete files older than $days days
+        echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Deleting files older than $days days in $dir_path..."
+        find "$dir_path" -ignore_readdir_race -type f -mtime +"$days" -delete
 
-      while IFS= read -r -d '' record && [ "$deleted_size" -lt "$target_size" ]; do
-        # Extract size and path from null-delimited record
-        size_bytes="${record%% *}"       # First field is timestamp
-        file_path="${record#* }"         # Remove timestamp
-        size_bytes="${file_path%% *}"    # Next field is size
-        file_path="${file_path#* }"      # Remainder is path
+        # Calculate threshold size in bytes (size is in GB)
+        threshold_size=$(echo "$size * 1024 * 1024 * 1024" | bc | awk '{printf "%.0f", $0}')
+        directory_size=$(du -sb "$dir_path" | awk '{print $1}')
+        directory_size_gb=$(echo "scale=2; $directory_size / (1024 * 1024 * 1024)" | bc)
 
-        if [ -f "$file_path" ]; then
-          rm -f "$file_path" && deleted_size=$((deleted_size + size_bytes))
+        if [ "$directory_size" -le "$threshold_size" ]; then
+          echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Size within limits for $label ($directory_size_gb GB). No action needed."
+          return 0
         fi
-      done < "$tempfile"
-      rm -f "$tempfile"
 
-      # Final size check
-      new_size=$(du -sb "$path" | awk '{print $1}')
-      new_size_gb=$(echo "scale=2; $new_size / 1024^3" | bc)
-      echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Deletion completed. Final size: $new_size_gb GB."
+        echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Size exceeded for $label: $directory_size_gb GB > $size GB. Deleting oldest files..."
+
+        # Generate sorted file list (oldest first)
+        tempfile=$(mktemp)
+        find "$dir_path" -ignore_readdir_race -type f -printf '%T@ %s %p\0' > "$tempfile"
+        sort -zn -o "$tempfile" "$tempfile"  # Null-delimited sort by timestamp
+
+        # Delete files until under threshold
+        target_size=$((directory_size - threshold_size))
+        deleted_size=0
+
+        while IFS= read -r -d '' record && [ "$deleted_size" -lt "$target_size" ]; do
+          # Extract size and path from null-delimited record
+          size_bytes="${record%% *}"       # First field is timestamp
+          file_path="${record#* }"         # Remove timestamp
+          size_bytes="${file_path%% *}"    # Next field is size
+          file_path="${file_path#* }"      # Remainder is path
+
+          if [ -f "$file_path" ]; then
+            rm -f "$file_path" && deleted_size=$((deleted_size + size_bytes))
+          fi
+        done < "$tempfile"
+        rm -f "$tempfile"
+
+        # Final size check
+        new_size=$(du -sb "$dir_path" | awk '{print $1}')
+        new_size_gb=$(echo "scale=2; $new_size / (1024 * 1024 * 1024)" | bc)
+        echo "[$(date "+%Y %b %-d %a %I:%M:%S")] Deletion completed for $label. Final size: $new_size_gb GB."
+      }
+
+      # Run for images and videos
+      process_dir "$images_path" "$images_size" "images"
+      process_dir "$videos_path" "$videos_size" "videos"
     mode: '0755'
 
 # Run every 3 hour, everyday
