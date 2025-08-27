@@ -60,7 +60,6 @@
     state: present
     validate: "/usr/sbin/visudo -cf %s"
 
-# ubuntu 24.10 does not have python3.8 in the default repo
 - name: Add Python repository to the apt sources
   become: true
   ansible.builtin.apt_repository:
@@ -68,66 +67,6 @@
     state: present
   environment:
     DEBIAN_FRONTEND: noninteractive
-  when: ansible_distribution_release != "oracular"
-
-# build python3.8 from source for ubuntu 24.10
-- name: Install Python build dependencies
-  become: true
-  ansible.builtin.apt:
-    name:
-      - build-essential
-      - libssl-dev
-      - zlib1g-dev
-      - libncurses5-dev
-      - libncursesw5-dev
-      - libreadline-dev
-      - libsqlite3-dev
-      - libgdbm-dev
-      - libdb5.3-dev
-      - libbz2-dev
-      - libexpat1-dev
-      - liblzma-dev
-      - tk-dev
-      - libffi-dev
-      - uuid-dev
-      - wget
-    state: present
-    update_cache: true
-  when: ansible_distribution_release == "oracular"
-
-- name: Download Python 3.8 source
-  ansible.builtin.get_url:
-    url: https://www.python.org/ftp/python/3.8.18/Python-3.8.18.tgz
-    dest: /tmp/Python-3.8.18.tgz
-    mode: '0644'
-  when: ansible_distribution_release == "oracular"
-
-- name: Extract Python 3.8 source
-  ansible.builtin.unarchive:
-    src: /tmp/Python-3.8.18.tgz
-    dest: /opt/
-    remote_src: true
-  when: ansible_distribution_release == "oracular"
-
-- name: Build and install Python 3.8
-  become: true
-  ansible.builtin.shell:
-    cmd: |
-      cd /opt/Python-3.8.18
-      ./configure --enable-optimizations
-      make -j "$(nproc)"
-      make altinstall
-    creates: /usr/local/bin/python3.8
-  when: ansible_distribution_release == "oracular"
-
-- name: Symlink python3.8 to /usr/bin
-  become: true
-  ansible.builtin.file:
-    src: /usr/local/bin/python3.8
-    dest: /usr/bin/python3.8
-    state: link
-    force: true
-  when: ansible_distribution_release == "oracular"
 
 - name: Add Greengrass runtime
   become: true
@@ -137,7 +76,6 @@
   ansible.builtin.apt:
     name: "{{ item }}"
     cache_valid_time: "{{ cache_valid_time }}"
-  when: ansible_distribution_release != "oracular"
 
 - name: Get pip for python3.8
   ansible.builtin.get_url:
@@ -168,7 +106,7 @@
     - fabric
     - cffi
     - pyopenssl==25.0.0
-  ansible.builtin.command: "python3.8 -m pip install --ignore-installed {{ item }}"
+  ansible.builtin.command: "python3.8 -m pip install --ignore-installed {{ item }} --target=/usr/local/lib/python3.8/dist-packages"
 
 - name: Download greengrass-core
   ansible.builtin.get_url:
