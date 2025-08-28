@@ -17,8 +17,6 @@ manager_mqtt_port: 8883
 frp_server_ip: edgev2.gotapway.com
 frp_token: T@pw4yANPR!
 
-github_token: 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  # pragma: allowlist secret
-
 # Default packages and apt parameters
 cache_valid_time: 3600
 
