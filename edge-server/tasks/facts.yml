@@ -106,10 +106,10 @@
               else:
                   raise ValueError(version)
           elif release == "36":
-              if major in ["2", "3", "4"] and minor in ["0", "3", "4"]:
-                  arch = "jetpack6.1"
+              if major in ["2", "3", "4"] and minor in ["0", "2", "3", "4"]:
+                arch = "jetpack6.1"
               else:
-                  raise ValueError(version)
+                raise ValueError(version)
           else:
               raise ValueError(version)
           return arch
